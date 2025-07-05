@@ -1,0 +1,468 @@
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .all-\[unset\] {
+    all: unset;
+  }
+}
+
+:root {
+  --14-regular-font-family: "Inter", Helvetica;
+  --14-regular-font-size: 14px;
+  --14-regular-font-style: normal;
+  --14-regular-font-weight: 400;
+  --14-regular-letter-spacing: 0px;
+  --14-regular-line-height: 20px;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+
+    --card: transparent;
+    --card-foreground: 222.2 47.4% 11.2%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 210 40% 98%;
+
+    --ring: 215 20.2% 65.1%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
+
+    --muted: 223 47% 11%;
+    --muted-foreground: 215.4 16.3% 56.9%;
+
+    --accent: 216 34% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --popover: 224 71% 4%;
+    --popover-foreground: 215 20.2% 65.1%;
+
+    --border: 216 34% 17%;
+    --input: 216 34% 17%;
+
+    --card: transparent;
+    --card-foreground: 213 31% 91%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 1.2%;
+
+    --secondary: 222.2 47.4% 11.2%;
+    --secondary-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --ring: 216 34% 17%;
+
+    --radius: 0.5rem;
+  }
+
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+
+    --card: transparent;
+    --card-foreground: 222.2 47.4% 11.2%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 210 40% 98%;
+
+    --ring: 215 20.2% 65.1%;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Dark mode styles (default) */
+  .dark body {
+    background-color: #0a0a0a;
+    color: #ffffff;
+  }
+
+  /* Light mode styles - White background with black text */
+  .light body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Smooth transitions for all elements */
+  * {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+  }
+
+  /* ===== LIGHT MODE OVERRIDES ===== */
+  
+  /* Primary text colors */
+  .light .text-white {
+    color: #000000 !important;
+  }
+
+  .light .text-\[\#ffffff\] {
+    color: #000000 !important;
+  }
+
+  .light .text-\[\#ffffffb2\] {
+    color: #666666 !important;
+  }
+
+  /* Background colors - Main containers */
+  .light .bg-\[\#0a0a0a\] {
+    background-color: #ffffff !important;
+  }
+
+  .light .bg-\[\#111111\] {
+    background-color: #f8f9fa !important;
+  }
+
+  .light .bg-\[\#1a1a1a\] {
+    background-color: #f1f3f4 !important;
+  }
+
+  .light .bg-\[\#2a2a2a\] {
+    background-color: #e8eaed !important;
+  }
+
+  .light .bg-\[\#222222\] {
+    background-color: #f1f3f4 !important;
+  }
+
+  .light .bg-\[\#333333\] {
+    background-color: #e0e0e0 !important;
+  }
+
+  /* Background colors - Transparent overlays */
+  .light .bg-\[\#ffffff03\] {
+    background-color: #f8f8f8 !important;
+  }
+
+  .light .bg-\[\#ffffff06\] {
+    background-color: #f5f5f5 !important;
+  }
+
+  .light .bg-\[\#ffffff08\] {
+    background-color: #f0f0f0 !important;
+  }
+
+  .light .bg-\[\#ffffff0a\] {
+    background-color: #eeeeee !important;
+  }
+
+  .light .bg-\[\#ffffff0d\] {
+    background-color: #e8e8e8 !important;
+  }
+
+  .light .bg-\[\#ffffff12\] {
+    background-color: #e0e0e0 !important;
+  }
+
+  .light .bg-\[\#ffffff1a\] {
+    background-color: #f5f5f5 !important;
+  }
+
+  /* Border colors */
+  .light .border-\[\#333333\] {
+    border-color: #d0d0d0 !important;
+  }
+
+  .light .border-\[\#ffffff0a\] {
+    border-color: #e0e0e0 !important;
+  }
+
+  .light .border-\[\#ffffff12\] {
+    border-color: #d0d0d0 !important;
+  }
+
+  .light .border-\[\#ffffff1a\] {
+    border-color: #c0c0c0 !important;
+  }
+
+  /* Hover states - Backgrounds */
+  .light .hover\:bg-\[\#ffffff03\]:hover {
+    background-color: #f0f0f0 !important;
+  }
+
+  .light .hover\:bg-\[\#ffffff06\]:hover {
+    background-color: #eeeeee !important;
+  }
+
+  .light .hover\:bg-\[\#ffffff08\]:hover {
+    background-color: #e8e8e8 !important;
+  }
+
+  .light .hover\:bg-\[\#ffffff12\]:hover {
+    background-color: #d8d8d8 !important;
+  }
+
+  .light .hover\:bg-\[\#222222\]:hover {
+    background-color: #e8e8e8 !important;
+  }
+
+  .light .hover\:bg-\[\#333333\]:hover {
+    background-color: #d0d0d0 !important;
+  }
+
+  /* Hover states - Text */
+  .light .hover\:text-white:hover {
+    color: #000000 !important;
+  }
+
+  .light .hover\:text-\[\#ffffffb2\]:hover {
+    color: #666666 !important;
+  }
+
+  /* Focus states */
+  .light .focus\:bg-\[\#222222\]:focus {
+    background-color: #e8e8e8 !important;
+  }
+
+  .light .focus\:bg-\[\#111111\]:focus {
+    background-color: #f0f0f0 !important;
+  }
+
+  /* Gradients */
+  .light .bg-gradient-to-r.from-\[\#1a1a1a\].to-\[\#2a2a2a\] {
+    background: linear-gradient(to right, #f8f9fa, #e8eaed) !important;
+  }
+
+  .light .bg-gradient-to-br.from-\[\#1a1a1a\].to-\[\#2a2a2a\] {
+    background: linear-gradient(to bottom right, #f8f9fa, #e8eaed) !important;
+  }
+
+  .light .bg-gradient-to-br.from-\[\#ffffff08\].to-\[\#ffffff04\] {
+    background: linear-gradient(to bottom right, #f0f0f0, #f5f5f5) !important;
+  }
+
+  .light .from-\[\#1a1a1a\] {
+    --tw-gradient-from: #f8f9fa !important;
+  }
+
+  .light .to-\[\#2a2a2a\] {
+    --tw-gradient-to: #e8eaed !important;
+  }
+
+  .light .from-\[\#ffffff08\] {
+    --tw-gradient-from: #f0f0f0 !important;
+  }
+
+  .light .to-\[\#ffffff04\] {
+    --tw-gradient-to: #f5f5f5 !important;
+  }
+
+  /* Placeholder text */
+  .light .placeholder\:text-\[\#ffffffb2\]::placeholder {
+    color: #666666 !important;
+  }
+
+  /* Group hover states */
+  .light .group-hover\:text-white:hover {
+    color: #000000 !important;
+  }
+
+  /* Special backgrounds */
+  .light .bg-black\/40 {
+    background-color: rgba(255, 255, 255, 0.8) !important;
+  }
+
+  .light .bg-black\/50 {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+  }
+
+  /* Backdrop blur */
+  .light .backdrop-blur-sm {
+    backdrop-filter: blur(4px);
+    background-color: rgba(255, 255, 255, 0.8) !important;
+  }
+
+  /* Additional specific overrides for complex selectors */
+  .light .dark\:bg-\[\#0a0a0a\] {
+    background-color: #ffffff !important;
+  }
+
+  .light .dark\:bg-\[\#111111\] {
+    background-color: #f8f9fa !important;
+  }
+
+  .light .dark\:bg-\[\#1a1a1a\] {
+    background-color: #f1f3f4 !important;
+  }
+
+  .light .dark\:text-white {
+    color: #000000 !important;
+  }
+
+  .light .dark\:text-\[\#ffffffb2\] {
+    color: #666666 !important;
+  }
+
+  .light .dark\:border-\[\#333333\] {
+    border-color: #d0d0d0 !important;
+  }
+
+  .light .dark\:border-\[\#ffffff0a\] {
+    border-color: #e0e0e0 !important;
+  }
+
+  .light .dark\:border-\[\#ffffff12\] {
+    border-color: #d0d0d0 !important;
+  }
+
+  /* Hover states for dark mode classes in light mode */
+  .light .dark\:hover\:bg-\[\#222222\]:hover {
+    background-color: #e8e8e8 !important;
+  }
+
+  .light .dark\:hover\:bg-\[\#333333\]:hover {
+    background-color: #d0d0d0 !important;
+  }
+
+  .light .dark\:hover\:text-white:hover {
+    color: #000000 !important;
+  }
+
+  /* Focus states for dark mode classes in light mode */
+  .light .dark\:focus\:bg-\[\#222222\]:focus {
+    background-color: #e8e8e8 !important;
+  }
+
+  .light .dark\:focus\:border-\[\#30bdee\] {
+    border-color: #30bdee !important;
+  }
+
+  /* Placeholder for dark mode classes in light mode */
+  .light .dark\:placeholder\:text-\[\#ffffffb2\]::placeholder {
+    color: #666666 !important;
+  }
+
+  /* Light mode specific overrides for components */
+  .light .light\:bg-gray-50 {
+    background-color: #ffffff !important;
+  }
+
+  .light .light\:bg-white {
+    background-color: #ffffff !important;
+  }
+
+  .light .light\:bg-gray-100 {
+    background-color: #f5f5f5 !important;
+  }
+
+  .light .light\:bg-gray-200 {
+    background-color: #e8e8e8 !important;
+  }
+
+  .light .light\:text-gray-900 {
+    color: #000000 !important;
+  }
+
+  .light .light\:text-gray-600 {
+    color: #666666 !important;
+  }
+
+  .light .light\:text-gray-500 {
+    color: #888888 !important;
+  }
+
+  .light .light\:border-gray-200 {
+    border-color: #e0e0e0 !important;
+  }
+
+  .light .light\:border-gray-300 {
+    border-color: #d0d0d0 !important;
+  }
+
+  /* Ensure all text is readable in light mode */
+  .light h1, .light h2, .light h3, .light h4, .light h5, .light h6 {
+    color: #000000 !important;
+  }
+
+  .light p, .light span, .light div {
+    color: inherit;
+  }
+
+  /* Override any remaining white text */
+  .light [class*="text-white"] {
+    color: #000000 !important;
+  }
+
+  .light [class*="text-[#ffffff"] {
+    color: #000000 !important;
+  }
+
+  /* Override any remaining dark backgrounds */
+  .light [class*="bg-[#0"] {
+    background-color: #ffffff !important;
+  }
+
+  .light [class*="bg-[#1"] {
+    background-color: #f5f5f5 !important;
+  }
+
+  .light [class*="bg-[#2"] {
+    background-color: #f0f0f0 !important;
+  }
+
+  .light [class*="bg-[#3"] {
+    background-color: #e8e8e8 !important;
+  }
+}
