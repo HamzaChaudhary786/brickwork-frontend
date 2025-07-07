@@ -5,8 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { DeleteConfirmationModal } from "../../components/ui/delete-confirmation-modal";
+import { useAbility } from "../../casl/AbilityContext";
 
 export const Groups = (): JSX.Element => {
+
+  const ability = useAbility();
+
   const [activeTab, setActiveTab] = useState("available");
   const [showGroupAdminModal, setShowGroupAdminModal] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<any>(null);
@@ -330,9 +334,9 @@ export const Groups = (): JSX.Element => {
 
   const handleDeleteConfirm = async () => {
     if (!deleteItem) return;
-    
+
     setIsDeleting(true);
-    
+
     // Simulate delete operation
     setTimeout(() => {
       console.log(`Deleting ${deleteItem.type}: ${deleteItem.name} (ID: ${deleteItem.id})`);
@@ -350,7 +354,7 @@ export const Groups = (): JSX.Element => {
 
   const getDeleteModalContent = () => {
     if (!deleteItem) return { title: "", description: "" };
-    
+
     switch (deleteItem.type) {
       case "role":
         return {
@@ -382,6 +386,13 @@ export const Groups = (): JSX.Element => {
         return "bg-[#30bdee] hover:bg-[#2aa3d1] text-white";
     }
   };
+
+
+  if (!ability.can('read', 'group')) {
+    return <div className="flex items-center justify-center h-screen text-white font-bold text-xl"
+    >You are not authorized to view this page.</div>;
+  }
+
 
   return (
     <div className="relative">
@@ -427,7 +438,7 @@ export const Groups = (): JSX.Element => {
               </Button>
             </Link>
           </div>
-          
+
           {/* Groups Grid - Responsive */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {/* XP Seeker */}
@@ -439,17 +450,17 @@ export const Groups = (): JSX.Element => {
                   </div>
                   <h3 className="text-white font-bold text-base sm:text-lg">XP Seeker</h3>
                 </div>
-                
+
                 <p className="text-[#ffffffb2] text-sm mb-4 leading-relaxed">
                   Complete missions, gain XP, and level up together daily.
                 </p>
-                
+
                 <div className="space-y-3 mb-4">
                   <div className="flex items-center justify-between">
                     <span className="text-[#30bdee] font-semibold text-sm">142 Members</span>
                     <span className="text-[#30bdee] font-semibold text-sm">+10% XP Boost</span>
                   </div>
-                  
+
                   <div className="flex flex-wrap gap-1">
                     <span className="px-2 py-1 bg-[#ffffff12] text-[#ffffffb2] text-xs rounded">#XP</span>
                     <span className="px-2 py-1 bg-[#ffffff12] text-[#ffffffb2] text-xs rounded">#Missions</span>
@@ -457,8 +468,8 @@ export const Groups = (): JSX.Element => {
                     <span className="px-2 py-1 bg-[#ffffff12] text-[#ffffffb2] text-xs rounded">#Leaderboard</span>
                   </div>
                 </div>
-                
-                <Button 
+
+                <Button
                   onClick={() => handleJoinGroup(availableGroups[0])}
                   className="w-full bg-[#30bdee] hover:bg-[#2aa3d1] text-white rounded-lg font-medium text-sm sm:text-base"
                 >
@@ -476,17 +487,17 @@ export const Groups = (): JSX.Element => {
                   </div>
                   <h3 className="text-white font-bold text-base sm:text-lg">Social Sparks</h3>
                 </div>
-                
+
                 <p className="text-[#ffffffb2] text-sm mb-4 leading-relaxed">
                   Sparking fun with games and community!
                 </p>
-                
+
                 <div className="space-y-3 mb-4">
                   <div className="flex items-center justify-between">
                     <span className="text-[#30bdee] font-semibold text-sm">170 Members</span>
                     <span className="text-[#30bdee] font-semibold text-sm">+30% XP Boost</span>
                   </div>
-                  
+
                   <div className="flex flex-wrap gap-1">
                     <span className="px-2 py-1 bg-[#ffffff12] text-[#ffffffb2] text-xs rounded">#Social</span>
                     <span className="px-2 py-1 bg-[#ffffff12] text-[#ffffffb2] text-xs rounded">#FunGames</span>
@@ -494,8 +505,8 @@ export const Groups = (): JSX.Element => {
                     <span className="px-2 py-1 bg-[#ffffff12] text-[#ffffffb2] text-xs rounded">#SocialGaming</span>
                   </div>
                 </div>
-                
-                <Button 
+
+                <Button
                   onClick={() => handleJoinGroup(availableGroups[1])}
                   className="w-full bg-[#30bdee] hover:bg-[#2aa3d1] text-white rounded-lg font-medium text-sm sm:text-base"
                 >
@@ -513,22 +524,22 @@ export const Groups = (): JSX.Element => {
                   </div>
                   <h3 className="text-white font-bold text-base sm:text-lg">Elite Circle</h3>
                 </div>
-                
+
                 <p className="text-[#ffffffb2] text-sm mb-2 leading-relaxed">
                   Master new skills, share knowledge & grow as a team
                 </p>
-                
+
                 <div className="mb-4">
                   <span className="px-3 py-1 bg-blue-600 text-white text-sm font-medium rounded-full">
                     Workshop Leader
                   </span>
                 </div>
-                
+
                 <p className="text-[#ffffffb2] text-sm mb-4 leading-relaxed">
                   Building hands-on learning, one session at a time
                 </p>
-                
-                <Button 
+
+                <Button
                   onClick={() => handleManageGroup(availableGroups[2])}
                   className="w-full bg-[#30bdee] hover:bg-[#2aa3d1] text-white rounded-lg font-medium text-sm sm:text-base"
                 >
@@ -546,21 +557,21 @@ export const Groups = (): JSX.Element => {
                   </div>
                   <h3 className="text-white font-bold text-base sm:text-lg">Level Up League</h3>
                 </div>
-                
+
                 <p className="text-[#ffffffb2] text-sm mb-2 leading-relaxed">
                   Gaming hub for challenges, tournaments, and fun.
                 </p>
-                
+
                 <div className="mb-4">
                   <span className="px-3 py-1 bg-yellow-600 text-white text-sm font-medium rounded-full">
                     BOT
                   </span>
                 </div>
-                
+
                 <p className="text-[#ffffffb2] text-sm mb-4 leading-relaxed">
                   Manage matches, get alerts, and connect with players.
                 </p>
-                
+
                 <Button className="w-full bg-[#30bdee] hover:bg-[#2aa3d1] text-white rounded-lg font-medium text-sm sm:text-base">
                   View Group
                 </Button>
@@ -599,7 +610,7 @@ export const Groups = (): JSX.Element => {
                   <Button className="flex-1 bg-[#ffffff12] hover:bg-[#ffffff1a] text-[#ffffffb2] hover:text-white border-0 rounded-lg text-sm">
                     Leave Group
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => handleManageGroup(myGroups[0])}
                     className="flex-1 bg-[#30bdee] hover:bg-[#2aa3d1] text-white rounded-lg text-sm"
                   >
@@ -623,7 +634,7 @@ export const Groups = (): JSX.Element => {
                   <Button className="flex-1 bg-[#ffffff12] hover:bg-[#ffffff1a] text-[#ffffffb2] hover:text-white border-0 rounded-lg text-sm">
                     Leave Group
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => handleManageGroup(myGroups[1])}
                     className="flex-1 bg-[#30bdee] hover:bg-[#2aa3d1] text-white rounded-lg text-sm"
                   >
@@ -647,7 +658,7 @@ export const Groups = (): JSX.Element => {
                   <Button className="flex-1 bg-[#ffffff12] hover:bg-[#ffffff1a] text-[#ffffffb2] hover:text-white border-0 rounded-lg text-sm">
                     Leave Group
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => handleManageGroup(myGroups[2])}
                     className="flex-1 bg-[#30bdee] hover:bg-[#2aa3d1] text-white rounded-lg text-sm"
                   >
@@ -695,11 +706,10 @@ export const Groups = (): JSX.Element => {
                           </div>
                           <span className="text-white text-sm font-medium">{role.user}</span>
                         </div>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          role.status === 'Active' ? 'bg-green-600 text-white' :
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${role.status === 'Active' ? 'bg-green-600 text-white' :
                           role.status === 'Bot' ? 'bg-yellow-600 text-white' :
-                          'bg-red-600 text-white'
-                        }`}>
+                            'bg-red-600 text-white'
+                          }`}>
                           {role.status}
                         </span>
                       </div>
@@ -712,10 +722,10 @@ export const Groups = (): JSX.Element => {
                         <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-1">
                           <EditIcon className="w-4 h-4" />
                         </Button>
-                        <Button 
+                        <Button
                           onClick={() => handleDeleteClick("role", role.role, role.id)}
-                          size="sm" 
-                          variant="ghost" 
+                          size="sm"
+                          variant="ghost"
                           className="text-[#ffffffb2] hover:text-red-400 p-1"
                         >
                           <TrashIcon className="w-4 h-4" />
@@ -744,11 +754,10 @@ export const Groups = (): JSX.Element => {
 
                       {/* Status */}
                       <div>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          role.status === 'Active' ? 'bg-green-600 text-white' :
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${role.status === 'Active' ? 'bg-green-600 text-white' :
                           role.status === 'Bot' ? 'bg-yellow-600 text-white' :
-                          'bg-red-600 text-white'
-                        }`}>
+                            'bg-red-600 text-white'
+                          }`}>
                           {role.status}
                         </span>
                       </div>
@@ -758,10 +767,10 @@ export const Groups = (): JSX.Element => {
                         <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-1">
                           <EditIcon className="w-4 h-4" />
                         </Button>
-                        <Button 
+                        <Button
                           onClick={() => handleDeleteClick("role", role.role, role.id)}
-                          size="sm" 
-                          variant="ghost" 
+                          size="sm"
+                          variant="ghost"
                           className="text-[#ffffffb2] hover:text-red-400 p-1"
                         >
                           <TrashIcon className="w-4 h-4" />
@@ -780,11 +789,11 @@ export const Groups = (): JSX.Element => {
       {showGroupAdminModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
-          <div 
+          <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={handleCloseModal}
           />
-          
+
           {/* Modal - Full Screen Group Admin */}
           <div className="relative bg-[#0a0a0a] w-full h-full max-w-7xl max-h-[95vh] overflow-hidden flex flex-col rounded-2xl border border-[#333333]">
             {/* Header */}
@@ -801,7 +810,7 @@ export const Groups = (): JSX.Element => {
                   <XIcon className="w-5 h-5" />
                 </Button>
               </div>
-              
+
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <h1 className="text-white text-2xl sm:text-3xl font-bold">Group Admin</h1>
@@ -831,7 +840,7 @@ export const Groups = (): JSX.Element => {
                     <p className="text-[#ffffffb2] text-sm leading-relaxed mb-4">
                       {groupAdminData.groupInfo.description}
                     </p>
-                    
+
                     {/* Stats Row */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                       <div>
@@ -875,7 +884,7 @@ export const Groups = (): JSX.Element => {
                         <SettingsIcon className="w-4 h-4" />
                       </Button>
                     </div>
-                    
+
                     <div className="space-y-4">
                       {groupAdminData.pendingApplications.map((application) => (
                         <div key={application.id} className="p-3 sm:p-4 bg-[#ffffff06] rounded-lg">
@@ -931,11 +940,10 @@ export const Groups = (): JSX.Element => {
                                 </div>
                                 <span className="text-white text-sm">{role.user}</span>
                               </div>
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                role.status === 'Active' ? 'bg-green-600 text-white' :
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${role.status === 'Active' ? 'bg-green-600 text-white' :
                                 role.status === 'Bot' ? 'bg-yellow-600 text-white' :
-                                'bg-red-600 text-white'
-                              }`}>
+                                  'bg-red-600 text-white'
+                                }`}>
                                 {role.status}
                               </span>
                             </div>
@@ -948,10 +956,10 @@ export const Groups = (): JSX.Element => {
                               <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-1">
                                 <EditIcon className="w-3 h-3" />
                               </Button>
-                              <Button 
+                              <Button
                                 onClick={() => handleDeleteClick("role", role.role, role.id)}
-                                size="sm" 
-                                variant="ghost" 
+                                size="sm"
+                                variant="ghost"
                                 className="text-[#ffffffb2] hover:text-red-400 p-1"
                               >
                                 <TrashIcon className="w-3 h-3" />
@@ -980,11 +988,10 @@ export const Groups = (): JSX.Element => {
 
                             {/* Status */}
                             <div>
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                role.status === 'Active' ? 'bg-green-600 text-white' :
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${role.status === 'Active' ? 'bg-green-600 text-white' :
                                 role.status === 'Bot' ? 'bg-yellow-600 text-white' :
-                                'bg-red-600 text-white'
-                              }`}>
+                                  'bg-red-600 text-white'
+                                }`}>
                                 {role.status}
                               </span>
                             </div>
@@ -1044,11 +1051,10 @@ export const Groups = (): JSX.Element => {
                           <div className="lg:hidden space-y-2">
                             <div className="flex items-center justify-between">
                               <p className="text-white text-sm font-medium">{mission.name}</p>
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                mission.status === 'Active' ? 'bg-green-600 text-white' :
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${mission.status === 'Active' ? 'bg-green-600 text-white' :
                                 mission.status === 'In Progress' ? 'bg-blue-600 text-white' :
-                                'bg-gray-600 text-white'
-                              }`}>
+                                  'bg-gray-600 text-white'
+                                }`}>
                                 {mission.status}
                               </span>
                             </div>
@@ -1064,10 +1070,10 @@ export const Groups = (): JSX.Element => {
                                 <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-1">
                                   <EditIcon className="w-3 h-3" />
                                 </Button>
-                                <Button 
+                                <Button
                                   onClick={() => handleDeleteClick("mission", mission.name, mission.id)}
-                                  size="sm" 
-                                  variant="ghost" 
+                                  size="sm"
+                                  variant="ghost"
                                   className="text-[#ffffffb2] hover:text-red-400 p-1"
                                 >
                                   <TrashIcon className="w-3 h-3" />
@@ -1085,11 +1091,10 @@ export const Groups = (): JSX.Element => {
                               <span className="text-white text-sm">{mission.coins}</span>
                             </div>
                             <div>
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                mission.status === 'Active' ? 'bg-green-600 text-white' :
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${mission.status === 'Active' ? 'bg-green-600 text-white' :
                                 mission.status === 'In Progress' ? 'bg-blue-600 text-white' :
-                                'bg-gray-600 text-white'
-                              }`}>
+                                  'bg-gray-600 text-white'
+                                }`}>
                                 {mission.status}
                               </span>
                             </div>
@@ -1097,10 +1102,10 @@ export const Groups = (): JSX.Element => {
                               <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-1">
                                 <EditIcon className="w-3 h-3" />
                               </Button>
-                              <Button 
+                              <Button
                                 onClick={() => handleDeleteClick("mission", mission.name, mission.id)}
-                                size="sm" 
-                                variant="ghost" 
+                                size="sm"
+                                variant="ghost"
                                 className="text-[#ffffffb2] hover:text-red-400 p-1"
                               >
                                 <TrashIcon className="w-3 h-3" />
@@ -1115,7 +1120,7 @@ export const Groups = (): JSX.Element => {
                   {/* Activity Log */}
                   <div className="bg-[#111111] border border-[#333333] rounded-2xl p-4 sm:p-6">
                     <h3 className="text-white text-lg sm:text-xl font-bold mb-6">Activity Log</h3>
-                    
+
                     <div className="space-y-4">
                       {groupAdminData.activityLog.map((activity) => (
                         <div key={activity.id} className="flex items-start gap-3 p-3 bg-[#ffffff06] rounded-lg hover:bg-[#ffffff08] transition-colors">

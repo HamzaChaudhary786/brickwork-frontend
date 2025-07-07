@@ -1,10 +1,12 @@
 import { TrendingUpIcon, UsersIcon, ShoppingBagIcon, StarIcon, ZapIcon, TrophyIcon, CoinsIcon, TargetIcon, ArrowUpIcon, PlayIcon, WalletIcon, DollarSignIcon } from "lucide-react";
-import React from "react";
 import { Link } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { DashboardProps } from ".";
+import { useAbility } from '../../casl/AbilityContext';
+
 export const Dashboard = ({ user }: DashboardProps): JSX.Element => {
+  const ability = useAbility();
+
   const stats = [
     {
       title: "XP Earned",
@@ -26,7 +28,7 @@ export const Dashboard = ({ user }: DashboardProps): JSX.Element => {
       borderColor: "border-purple-400/30"
     },
   ];
-  
+
 
   const recentActivity = [
     {
@@ -98,6 +100,17 @@ export const Dashboard = ({ user }: DashboardProps): JSX.Element => {
     totalToNext: 10000,
     percentage: (8450 / 10000) * 100
   };
+
+
+  if (!ability.can('view', 'dashboard')) {
+    return (
+      <div
+        className="flex items-center justify-center h-screen text-white font-bold text-xl"
+      >
+        You are not authorized to view the Dashboard.
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8 bg-[#0a0a0a] dark:bg-[#0a0a0a] light:bg-gray-50 min-h-screen transition-colors duration-300">

@@ -4,8 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/ca
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { DeleteConfirmationModal } from "../../components/ui/delete-confirmation-modal";
+import { useAbility } from "../../casl/AbilityContext";
 
 export const AdminDashboard = (): JSX.Element => {
+  const ability = useAbility();
+
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteItem, setDeleteItem] = useState<{
     type: string;
@@ -17,37 +20,37 @@ export const AdminDashboard = (): JSX.Element => {
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
 
   const stats = [
-    { 
-      title: "Total Users", 
-      value: "2,847", 
-      icon: UsersIcon, 
+    {
+      title: "Total Users",
+      value: "2,847",
+      icon: UsersIcon,
       color: "text-[#30bdee]",
       bgColor: "bg-[#30bdee]/10",
       change: "+12%",
       changeColor: "text-green-400"
     },
-    { 
-      title: "Total Sales", 
-      value: "$45,231", 
-      icon: DollarSignIcon, 
+    {
+      title: "Total Sales",
+      value: "$45,231",
+      icon: DollarSignIcon,
       color: "text-green-400",
       bgColor: "bg-green-400/10",
       change: "+8%",
       changeColor: "text-green-400"
     },
-    { 
-      title: "Orders", 
-      value: "1,234", 
-      icon: ShoppingBagIcon, 
+    {
+      title: "Orders",
+      value: "1,234",
+      icon: ShoppingBagIcon,
       color: "text-purple-400",
       bgColor: "bg-purple-400/10",
       change: "+15%",
       changeColor: "text-green-400"
     },
-    { 
-      title: "Revenue", 
-      value: "$12,847", 
-      icon: TrendingUpIcon, 
+    {
+      title: "Revenue",
+      value: "$12,847",
+      icon: TrendingUpIcon,
       color: "text-orange-400",
       bgColor: "bg-orange-400/10",
       change: "+5%",
@@ -276,9 +279,9 @@ export const AdminDashboard = (): JSX.Element => {
 
   const handleDeleteConfirm = async () => {
     if (!deleteItem) return;
-    
+
     setIsDeleting(true);
-    
+
     // Simulate delete operation
     setTimeout(() => {
       console.log(`Deleting ${deleteItem.type}: ${deleteItem.name} (ID: ${deleteItem.id})`);
@@ -306,7 +309,7 @@ export const AdminDashboard = (): JSX.Element => {
 
   const getDeleteModalContent = () => {
     if (!deleteItem) return { title: "", description: "" };
-    
+
     switch (deleteItem.type) {
       case "role":
         return {
@@ -335,6 +338,12 @@ export const AdminDashboard = (): JSX.Element => {
         };
     }
   };
+
+
+  if (!ability.can('manage', 'all')) {
+    return <div className="flex items-center justify-center h-screen text-white font-bold text-xl"
+    >Admin access only</div>;
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8 bg-[#0a0a0a] min-h-screen">
@@ -835,11 +844,11 @@ export const AdminDashboard = (): JSX.Element => {
       {showPlayerInfoModal && selectedPlayer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
-          <div 
+          <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={handleClosePlayerInfo}
           />
-          
+
           {/* Modal */}
           <div className="relative bg-[#111111] w-full max-w-md rounded-2xl border border-[#333333] p-6 max-h-[90vh] overflow-y-auto">
             {/* Header */}
