@@ -9,8 +9,8 @@ import { createAuthClient } from "better-auth/react";
 // });
 const authClient = createAuthClient({
   baseURL: "https://unnamed-temp.onrender.com", // Your backend base URL
-   fetchOptions: {
-      credentials: "include",
-    }
+  //  fetchOptions: {
+  //     credentials: "include",
+  //   }
 });
 export default authClient;
