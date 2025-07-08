@@ -101,16 +101,19 @@ export const Dashboard = ({ user }: DashboardProps): JSX.Element => {
     percentage: (8450 / 10000) * 100
   };
 
+  console.log(ability, "this is my ability");
+
+  console.log('Rules:', ability.rules); // shows all defined permission rules
+
 
   if (!ability.can('view', 'dashboard')) {
     return (
-      <div
-        className="flex items-center justify-center h-screen text-white font-bold text-xl"
-      >
+      <div className="flex items-center justify-center h-screen text-white font-bold text-xl">
         You are not authorized to view the Dashboard.
       </div>
     );
   }
+
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8 bg-[#0a0a0a] dark:bg-[#0a0a0a] light:bg-gray-50 min-h-screen transition-colors duration-300">

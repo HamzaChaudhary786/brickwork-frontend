@@ -1,5 +1,10 @@
-import React, { createContext, useContext } from 'react';
-import type { AppAbility } from './ability';
+import { createContext, useContext } from 'react';
+import { createMongoAbility } from '@casl/ability';
+import type { AppAbility, Actions, Subjects } from './ability';
 
-export const AbilityContext = createContext<AppAbility>(null as any);
+// Empty default ability
+const defaultAbility = createMongoAbility<[Actions, Subjects]>([]);
+
+export const AbilityContext = createContext<AppAbility>(defaultAbility);
+
 export const useAbility = () => useContext(AbilityContext);
