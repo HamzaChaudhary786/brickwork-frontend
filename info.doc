@@ -1,0 +1,51 @@
+// export const authClient = createAuthClient({
+//   plugins: [
+//     inferAdditionalFields({
+//       user: {
+//         role: { type: "string" },
+//         username: { type: "string" },
+//         steamId: { type: "string", required: false },
+//         starCitizenId: { type: "string", required: false }
+//       }
+//     })
+//   ],
+// });
+
+
+// // Basic update
+// await authClient.updateUser({
+//   name: "John Doe",
+//   image: "https://example.com/image.jpg"
+// });
+
+// // With additional fields
+// await authClient.updateUser({
+//   name: "John Doe",
+//   username: "johndoe123",
+//   steamId: "76561198000000000",
+//   starCitizenId: "STAR-CITIZEN-ID-123"
+// });
+
+
+// src/config/authConfig.ts
+// import { createAuthClient } from "better-auth/react";
+// import { inferAdditionalFields } from "better-auth/client/plugins";
+
+// const authClient = createAuthClient({
+//   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080",
+//   fetchOptions: {
+//     credentials: "include",
+//   },
+//   plugins: [
+//     inferAdditionalFields({
+//       user: {
+//         role: { type: "string" },
+//         username: { type: "string" },
+//         steamId: { type: "string", required: false },
+//         starCitizenId: { type: "string", required: false }
+//       }
+//     })
+//   ],
+// });
+
+// export default authClient;
