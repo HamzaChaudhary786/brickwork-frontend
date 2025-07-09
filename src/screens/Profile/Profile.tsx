@@ -1,11 +1,45 @@
 import { EditIcon, MessageCircleIcon, UserMinusIcon } from "lucide-react";
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { DashboardProps } from "../Dashboard";
+import { FormData } from ".";
+import authClient from "../../config/authConfig";
 
 export const Profile = ({ user }: DashboardProps): JSX.Element => {
 
+  const [editProfile, setEditProfile] = useState<any>(false)
+
+  const [formData, setFormData] = useState<FormData>({
+    name: '',
+    username: '',
+    steamId: '',
+    starCitizenId: ''
+  });
+
+  const handleInputChange = (field: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: e.target.value
+    }));
+  };
+
+  const handleUpdate = async () => {
+    try {
+      await authClient.updateUser({
+        name: formData.name,
+        username: formData.username,
+        steamId: formData.steamId,
+        starCitizenId: formData.starCitizenId
+      });
+      alert('Profile updated!');
+
+    } catch (error: any) {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  // if (!editProfile) return null;
 
   // User data
   const userData = {
@@ -111,10 +145,74 @@ export const Profile = ({ user }: DashboardProps): JSX.Element => {
                 : user.name
               : 'Unknown'}
           </h1>
-          <Button className="bg-[#30bdee] hover:bg-[#2aa3d1] text-white px-4 sm:px-6 py-2 rounded-lg w-full sm:w-auto">
+          <Button className="bg-[#30bdee] hover:bg-[#2aa3d1] text-white px-4 sm:px-6 py-2 rounded-lg w-full sm:w-auto" onClick={() => {
+            setEditProfile(!editProfile)
+
+          }}>
             Edit Profile
           </Button>
         </div>
+      </div>
+
+      <div>
+        {
+          editProfile && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+              <div className="bg-white p-6 rounded-lg w-80">
+                <h2 className="text-lg font-bold mb-4">Edit Profile</h2>
+
+                <div className="space-y-3 text-black">
+                  <input
+                    type="text"
+                    placeholder="Name"
+                    value={formData.name}
+                    onChange={handleInputChange('name')}
+                    className="w-full p-2 border rounded"
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Username"
+                    value={formData.username}
+                    onChange={handleInputChange('username')}
+                    className="w-full p-2 border rounded"
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Steam ID (optional)"
+                    value={formData.steamId}
+                    onChange={handleInputChange('steamId')}
+                    className="w-full p-2 border rounded"
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Star Citizen ID (optional)"
+                    value={formData.starCitizenId}
+                    onChange={handleInputChange('starCitizenId')}
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={() => { setEditProfile(!editProfile) }}
+                    className="flex-1 p-2 bg-gray-300 rounded"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleUpdate}
+                    className="flex-1 p-2 bg-blue-500 text-white rounded"
+                  >
+                    Update
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        }
       </div>
 
       <div className="p-4 sm:p-6 lg:p-8">

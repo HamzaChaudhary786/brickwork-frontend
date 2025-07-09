@@ -19,7 +19,9 @@ import { InventoryManagement } from './screens/InventoryManagement';
 import authClient from './config/authConfig';
 import { defineAbilityFor, type AppAbility, type Subjects, type Actions } from './casl/ability';
 import { fetchUserRole } from './apis/getUserRole';
-import { AbilityContext } from './casl/AbilityContext'; // ✅ Import the AbilityContext
+import { AbilityContext } from './casl/AbilityContext';
+import { PrivateRoute } from './components/PrivateRoutes/PrivateRoute';
+import AuthHandler from './components/AuthHandler/AuthHandler'; // 🧠 Custom redirection component
 
 function App() {
   const { data, isPending } = authClient.useSession();
@@ -27,11 +29,10 @@ function App() {
   const [user, setUser] = useState<any>(null);
   const [ability, setAbility] = useState<AppAbility | null>(null);
   const [abilityLoading, setAbilityLoading] = useState(true);
-
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // Use null to indicate unresolved state
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Apply saved theme
+  // Theme Setup
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
@@ -41,7 +42,7 @@ function App() {
     }
   }, []);
 
-  // Setup user session and ability
+  // Session & Role Setup
   useEffect(() => {
     const setupSession = async () => {
       setAbilityLoading(true);
@@ -55,7 +56,6 @@ function App() {
         try {
           const userRoleResponse = await fetchUserRole();
           const { roles, permissions } = userRoleResponse.result;
-          console.log(roles, permissions, "ability instance");
 
           const abilityInstance = defineAbilityFor(
             roles,
@@ -82,44 +82,62 @@ function App() {
     setupSession();
   }, [data, isPending]);
 
-  // Show loading screen while session or abilities are being set up
+  // Show loading screen while session is being initialized
   if (isLoading || abilityLoading || isPending || isAuthenticated === null) {
     return <LoadingScreen message="Initializing GameHub..." />;
   }
 
-  // If not authenticated, show login screen
-  if (!isAuthenticated) {
-    return <Login onLogin={() => setIsAuthenticated(true)} />;
-  }
-
-  // ✅ Wrap app with AbilityContext.Provider and pass ability
   return (
     <AbilityContext.Provider value={ability!}>
       <Router>
-        <Layout
-          onLogout={async () => {
-            await authClient.signOut();
-            setIsAuthenticated(false);
-            setUser(null);
-            setAbility(null);
-            localStorage.removeItem('user');
-          }}
-        >
-          <Routes>
-            <Route path="/" element={<Navigate to="/profile" replace />} />
-            <Route path="/dashboard" element={<Dashboard user={user} />} />
-            <Route path="/profile" element={<Profile user={user} />} />
-            <Route path="/marketplace" element={<Marketplace user={user} />} />
-            <Route path="/missions" element={<Missions />} />
-            <Route path="/groups" element={<Groups />} />
-            <Route path="/groups/all" element={<AllGroups />} />
-            <Route path="/item/:id" element={<ItemDetail />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/inventory" element={<InventoryManagement />} />
-          </Routes>
-        </Layout>
+        <Routes>
+          {/* 🔐 Login Route (public but redirects if already logged in) */}
+          <Route
+            path="/login"
+            element={
+              isAuthenticated ? (
+                <Navigate to="/profile" replace />
+              ) : (
+                <Login onLogin={() => setIsAuthenticated(true)} />
+              )
+            }
+          />
+
+          {/* 🔁 Root Route (Dynamic Redirect) */}
+          <Route path="/" element={<AuthHandler isAuthenticated={isAuthenticated} />} />
+
+          {/* 🛡️ Protected Routes */}
+          <Route
+            path="/*"
+            element={
+              <PrivateRoute isAuthenticated={isAuthenticated}>
+                <Layout
+                  onLogout={async () => {
+                    await authClient.signOut();
+                    setIsAuthenticated(false);
+                    setUser(null);
+                    setAbility(null);
+                    localStorage.removeItem('user');
+                  }}
+                >
+                  <Routes>
+                    <Route path="/dashboard" element={<Dashboard user={user} />} />
+                    <Route path="/profile" element={<Profile user={user} />} />
+                    <Route path="/marketplace" element={<Marketplace user={user} />} />
+                    <Route path="/missions" element={<Missions />} />
+                    <Route path="/groups" element={<Groups />} />
+                    <Route path="/groups/all" element={<AllGroups />} />
+                    <Route path="/item/:id" element={<ItemDetail />} />
+                    <Route path="/cart" element={<Cart />} />
+                    <Route path="/checkout" element={<Checkout />} />
+                    <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/inventory" element={<InventoryManagement />} />
+                  </Routes>
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+        </Routes>
       </Router>
     </AbilityContext.Provider>
   );
