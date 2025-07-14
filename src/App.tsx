@@ -22,9 +22,8 @@ import { fetchUserRole } from './apis/getUserRole';
 import { AbilityContext } from './casl/AbilityContext';
 import { PrivateRoute } from './components/PrivateRoutes/PrivateRoute';
 import AuthHandler from './components/AuthHandler/AuthHandler'; // 🧠 Custom redirection component
-import { RecruiterDashboard } from './screens/RecruiterDashboard';
+import { RecruiterDashboard } from './screens/RecuiterDashboard/RecuiterDashboard';
 import { PublicDashboard } from './screens/PublicDashboard';
-import { MembershipApplication } from './screens/MembershipApplication';
 import { NewsUpdates } from './screens/NewsUpdates';
 
 function App() {
