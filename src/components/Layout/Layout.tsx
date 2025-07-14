@@ -4,7 +4,8 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { TopNavbar} from "../TopNavbar";
-import { getUserById } from "../../apis/profileApi/getUserProfile";
+import { User } from "../../screens/Dashboard";
+
 
 interface LayoutProps {
   children: React.ReactNode;
