@@ -22,6 +22,9 @@ import { fetchUserRole } from './apis/getUserRole';
 import { AbilityContext } from './casl/AbilityContext';
 import { PrivateRoute } from './components/PrivateRoutes/PrivateRoute';
 import AuthHandler from './components/AuthHandler/AuthHandler'; // 🧠 Custom redirection component
+import { RecruiterDashboard } from './screens/RecuiterDashboard/RecuiterDashboard';
+import { PublicDashboard } from './screens/PublicDashboard';
+import { NewsUpdates } from './screens/NewsUpdates';
 
 function App() {
   const { data, isPending } = authClient.useSession();
@@ -120,19 +123,23 @@ function App() {
                     localStorage.removeItem('user');
                   }}
                 >
-                  <Routes>
-                    <Route path="/dashboard" element={<Dashboard user={user} />} />
-                    <Route path="/profile" element={<Profile user={user} />} />
-                    <Route path="/marketplace" element={<Marketplace user={user} />} />
-                    <Route path="/missions" element={<Missions />} />
-                    <Route path="/groups" element={<Groups />} />
-                    <Route path="/groups/all" element={<AllGroups />} />
-                    <Route path="/item/:id" element={<ItemDetail />} />
-                    <Route path="/cart" element={<Cart />} />
-                    <Route path="/checkout" element={<Checkout />} />
-                    <Route path="/admin" element={<AdminDashboard />} />
-                    <Route path="/inventory" element={<InventoryManagement />} />
-                  </Routes>
+          <Routes>
+            <Route path="/" element={<Navigate to="/profile" replace />} />
+            <Route path="/dashboard" element={<Dashboard user={user} />} />
+            <Route path="/public-dashboard" element={<PublicDashboard />} />
+            <Route path="/news-updates" element={<NewsUpdates />} />
+            <Route path="/profile" element={<Profile user={user} />} />
+            <Route path="/marketplace" element={<Marketplace user={user} />} />
+            <Route path="/missions" element={<Missions />} />
+            <Route path="/groups" element={<Groups />} />
+            <Route path="/groups/all" element={<AllGroups />} />
+            <Route path="/item/:id" element={<ItemDetail />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/recruiter" element={<RecruiterDashboard />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/inventory" element={<InventoryManagement />} />
+          </Routes>
                 </Layout>
               </PrivateRoute>
             }
