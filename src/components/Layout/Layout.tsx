@@ -32,6 +32,7 @@ export const Layout = ({ children, onLogout }: LayoutProps): JSX.Element => {
     { icon: PackageIcon, label: "Inventory Management", path: "/inventory", active: false },
   ];
 
+  
   const handleLogout = async () => {
     setIsLoggingOut(true);
 
