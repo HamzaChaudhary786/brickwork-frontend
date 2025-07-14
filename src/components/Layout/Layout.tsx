@@ -1,4 +1,4 @@
-import { ChevronDownIcon, LogOutIcon, SearchIcon, ShoppingCartIcon, HomeIcon, UserIcon, ShoppingBagIcon, RocketIcon, UsersIcon, SettingsIcon, PackageIcon, MenuIcon, XIcon } from "lucide-react";
+import { ChevronDownIcon, LogOutIcon, SearchIcon, ShoppingCartIcon, HomeIcon, UserIcon, ShoppingBagIcon, RocketIcon, UsersIcon, SettingsIcon, PackageIcon, MenuIcon, XIcon, BellIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "../ui/button";
@@ -24,13 +24,17 @@ export const Layout = ({ children, onLogout }: LayoutProps): JSX.Element => {
   // Navigation items data with proper icons
   const navItems = [
     { icon: HomeIcon, label: "Dashboard", path: "/dashboard", active: false },
+    { icon: BellIcon, label: "News & Updates", path: "/news-updates", active: false },
+    { icon: UserIcon, label: "Public Dashboard", path: "/public-dashboard", active: false },
     { icon: UserIcon, label: "Profile", path: "/profile", active: false },
     { icon: ShoppingBagIcon, label: "Marketplace", path: "/marketplace", active: false },
     { icon: RocketIcon, label: "Missions", path: "/missions", active: false },
     { icon: UsersIcon, label: "Groups", path: "/groups", active: false },
+    { icon: UserIcon, label: "Recruiter Dashboard", path: "/recruiter", active: false },
     { icon: SettingsIcon, label: "Admin Dashboard", path: "/admin", active: false },
     { icon: PackageIcon, label: "Inventory Management", path: "/inventory", active: false },
   ];
+
 
   
   const handleLogout = async () => {
