@@ -7,6 +7,10 @@ import { DeleteConfirmationModal } from "../../components/ui/delete-confirmation
 import { useAbility } from "../../casl/AbilityContext";
 import { fetchAllUsers } from "../../apis/getAllUsers";
 import { addRole, RoleData } from "../../apis/addRoles";
+import { assignRole } from "../../apis/assignRole";
+import { getAllRoles } from "../../apis/getAllRoles";
+import { Role } from ".";
+import { deleteRole } from "../../apis/deleteassignRole";
 
 
 interface Props {
@@ -25,19 +29,49 @@ type User = {
   updatedAt: string;
 };
 
+interface RoleFormData {
+  name: string;
+  description: string;
+  discordRoleId: string;
+  color: number;
+  level: number;
+  isActive: boolean; // ✅ Add this
+
+}
+
+
 export const AdminDashboard = (): JSX.Element => {
   const ability = useAbility();
   const [users, setUsers] = useState<User[]>([]); // ✅
-  const [formData, setFormData] = useState<RoleData>({
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [isAssign, setIsAssign] = useState<boolean>(false);
+  const [formData, setFormData] = useState<RoleFormData>({
     name: '',
     description: '',
     discordRoleId: '',
     color: 0,
     level: 0,
-    isActive: true,
+    isActive: false
   });
 
-  const [isOpen, setIsOpen] = useState(false)
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const allRoles = await getAllRoles();
+        setRoles(allRoles);
+      } catch (err) {
+        console.error("Failed to load roles:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRoles();
+  }, []);
+
 
   useEffect(() => {
     const getUsersData = async () => {
@@ -60,7 +94,7 @@ export const AdminDashboard = (): JSX.Element => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showPlayerInfoModal, setShowPlayerInfoModal] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
-
+  const [userId, setUserId] = useState<string | null>(null)
   const stats = [
     {
       title: "Total Users",
@@ -388,26 +422,55 @@ export const AdminDashboard = (): JSX.Element => {
   }
 
 
+  // const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  //   const { name, value, type } = e.target;
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     [name]: type === 'number' ? Number(value) : value,
+  //   }));
+  // };
+
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    setFormData((prev) => ({
+    const { name, value } = e.target;
+    setFormData(prev => ({
       ...prev,
-      [name]: type === 'number' ? Number(value) : value,
+      [name]: name === 'color' || name === 'level' ? Number(value) : value,
     }));
   };
-
-
   const handleSubmit = async () => {
-    const res = await addRole(formData);
-    if (res.success) {
-      // toast.success('Role added successfully!');
-      setIsOpen(!isOpen)
+    let res;
+
+    if (isAssign) {
+      if (!userId) {
+        // Optionally show an error or return early
+        console.error("User ID is required for assigning role.");
+        return;
+      }
+      res = await assignRole(userId, formData);
     } else {
-      // toast.error(res.message || 'Failed to add role');
+      res = await addRole(formData);
+    }
+
+    if (res.success) {
+      setIsOpen(false);
+    } else {
+      // Handle error
     }
   };
 
 
+  const handleDelete = async (id: string) => {
+    const confirmed = window.confirm("Are you sure you want to delete this role?");
+    if (!confirmed) return;
+
+    const success = await deleteRole(id);
+    if (success) {
+      setRoles(prev => prev.filter(role => role.id !== id));
+    } else {
+      alert("Failed to delete role");
+    }
+  };
 
   const formatDate = (dateString: any) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -467,7 +530,10 @@ export const AdminDashboard = (): JSX.Element => {
               </CardTitle>
               <Button
                 className="bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 px-4 py-2 rounded-lg text-sm"
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={() => {
+                  setIsAssign(false);
+                  setIsOpen(true);
+                }}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Role
@@ -512,6 +578,14 @@ export const AdminDashboard = (): JSX.Element => {
                     <div className="flex gap-1">
                       <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-1">
                         <Edit className="w-3 h-3" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-1"
+                        onClick={() => {
+                          setIsAssign(true);
+                          setIsOpen(true);
+                          setUserId(user._id)
+                        }}>
+                        Assign Role
                       </Button>
                       <Button
                         onClick={() => handleDeleteClick("user", user.name, user.id)}
@@ -584,7 +658,7 @@ export const AdminDashboard = (): JSX.Element => {
           text-xl font-bold mb-6
           text-gray-900 dark:text-white
         ">
-                  Add New Role
+                  {isAssign ? "Assign Role" : "Add New Role"}
                 </h2>
 
                 <div className="space-y-4">
@@ -686,7 +760,7 @@ export const AdminDashboard = (): JSX.Element => {
             "
                     onClick={handleSubmit}
                   >
-                    Submit
+                    {isAssign ? "Assign Role" : "Add Role"}
                   </button>
                 </div>
               </div>

@@ -22,7 +22,9 @@ export const addRole = async (roleData: RoleData): Promise<ApiResponse<any>> => 
         'Content-Type': 'application/json',
         // Add your auth token if needed
         // Authorization: `Bearer ${your_token}`,
+
       },
+       credentials: "include", 
       body: JSON.stringify(roleData),
     });
 
