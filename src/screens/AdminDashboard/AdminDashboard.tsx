@@ -1,13 +1,55 @@
-import { UsersIcon, ShoppingBagIcon, TrendingUpIcon, DollarSignIcon, SearchIcon, FilterIcon, MoreHorizontalIcon, CheckIcon, XIcon, EyeIcon, PlusIcon, EditIcon, TrashIcon, InfoIcon } from "lucide-react";
-import React, { useState } from "react";
+import { UsersIcon, ShoppingBagIcon, TrendingUpIcon, DollarSignIcon, SearchIcon, FilterIcon, MoreHorizontalIcon, CheckIcon, XIcon, EyeIcon, PlusIcon, EditIcon, TrashIcon, InfoIcon, Plus, Edit, Trash2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { DeleteConfirmationModal } from "../../components/ui/delete-confirmation-modal";
 import { useAbility } from "../../casl/AbilityContext";
+import { fetchAllUsers } from "../../apis/getAllUsers";
+import { addRole, RoleData } from "../../apis/addRoles";
+
+
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+type User = {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  emailVerified: boolean;
+  image: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export const AdminDashboard = (): JSX.Element => {
   const ability = useAbility();
+  const [users, setUsers] = useState<User[]>([]); // ✅
+  const [formData, setFormData] = useState<RoleData>({
+    name: '',
+    description: '',
+    discordRoleId: '',
+    color: 0,
+    level: 0,
+    isActive: true,
+  });
+
+  const [isOpen, setIsOpen] = useState(false)
+
+  useEffect(() => {
+    const getUsersData = async () => {
+      let data = await fetchAllUsers()
+      setUsers(data.result)
+    }
+    getUsersData()
+  }, [])
+
+
+  console.log(users, "my all users");
+
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteItem, setDeleteItem] = useState<{
@@ -345,6 +387,36 @@ export const AdminDashboard = (): JSX.Element => {
     >Admin access only</div>;
   }
 
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'number' ? Number(value) : value,
+    }));
+  };
+
+
+  const handleSubmit = async () => {
+    const res = await addRole(formData);
+    if (res.success) {
+      // toast.success('Role added successfully!');
+      setIsOpen(!isOpen)
+    } else {
+      // toast.error(res.message || 'Failed to add role');
+    }
+  };
+
+
+
+  const formatDate = (dateString: any) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8 bg-[#0a0a0a] min-h-screen">
       {/* Header */}
@@ -384,6 +456,243 @@ export const AdminDashboard = (): JSX.Element => {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      <div>
+        <Card className="bg-[#111111] border-[#333333]">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-white font-['Rajdhani',Helvetica] font-bold text-xl">
+                Users
+              </CardTitle>
+              <Button
+                className="bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 px-4 py-2 rounded-lg text-sm"
+                onClick={() => setIsOpen(!isOpen)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Role
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {/* Table Header - Desktop */}
+            <div className="hidden lg:grid grid-cols-12 gap-2 p-3 bg-[#ffffff06] rounded-lg mb-4 text-[#ffffffb2] text-sm font-medium">
+              <div className="col-span-3">User</div>
+              <div className="col-span-2">Username</div>
+              <div className="col-span-3">Email</div>
+              <div className="col-span-2">Created</div>
+              <div className="col-span-1">Verified</div>
+              <div className="col-span-1">Actions</div>
+            </div>
+
+            {/* Table Rows */}
+            <div className="space-y-2">
+              {users?.map((user: any) => (
+                <div key={user.id} className="lg:grid lg:grid-cols-12 lg:gap-2 p-3 bg-[#ffffff03] rounded-lg hover:bg-[#ffffff06] transition-colors lg:items-center">
+                  {/* Mobile Layout */}
+                  <div className="lg:hidden space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={user.image}
+                          alt={user.name}
+                          className="w-8 h-8 rounded-full"
+                        />
+                        <div>
+                          <div className="text-white text-sm font-medium">{user.name}</div>
+                          <div className="text-[#ffffffb2] text-xs">@{user.username}</div>
+                        </div>
+                      </div>
+                      <div className={`w-2 h-2 rounded-full ${user.emailVerified ? 'bg-green-500' : 'bg-red-500'}`} />
+                    </div>
+                    <div className="text-[#ffffffb2] text-xs">
+                      <div>{user.email}</div>
+                      <div className="mt-1">Joined {formatDate(user.createdAt)}</div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-1">
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        onClick={() => handleDeleteClick("user", user.name, user.id)}
+                        size="sm"
+                        variant="ghost"
+                        className="text-[#ffffffb2] hover:text-red-400 p-1"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Desktop Layout */}
+                  <div className="hidden lg:contents">
+                    <div className="col-span-3 flex items-center gap-3">
+                      <img
+                        src={user.image}
+                        alt={user.name}
+                        className="w-8 h-8 rounded-full flex-shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-white text-sm font-medium truncate">{user.name}</div>
+                        <div className="text-[#ffffffb2] text-xs truncate">ID: {user.id.slice(0, 8)}...</div>
+                      </div>
+                    </div>
+                    <div className="col-span-2 text-[#ffffffb2] text-sm">@{user.username}</div>
+                    <div className="col-span-3 text-[#ffffffb2] text-sm truncate">{user.email}</div>
+                    <div className="col-span-2 text-[#ffffffb2] text-sm">{formatDate(user.createdAt)}</div>
+                    <div className="col-span-1">
+                      <div className={`w-2 h-2 rounded-full ${user.emailVerified ? 'bg-green-500' : 'bg-red-500'}`} />
+                    </div>
+                    <div className="col-span-1 flex gap-1">
+                      <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-1">
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        onClick={() => handleDeleteClick("user", user.name, user.id)}
+                        size="sm"
+                        variant="ghost"
+                        className="text-[#ffffffb2] hover:text-red-400 p-1"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* View All Button */}
+            <div className="mt-4 text-center">
+              <Button variant="ghost" className="text-[#30bdee] text-sm">
+                View All Users
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      <div>
+        {
+          isOpen && (
+            <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50">
+              <div className="
+        rounded-2xl shadow-2xl p-6 w-full max-w-md transition-all duration-300 transform
+        bg-white dark:bg-gray-900 
+        border border-gray-200 dark:border-gray-700 
+        shadow-black/10 dark:shadow-black/50
+      ">
+                <h2 className="
+          text-xl font-bold mb-6
+          text-gray-900 dark:text-white
+        ">
+                  Add New Role
+                </h2>
+
+                <div className="space-y-4">
+                  <input
+                    name="name"
+                    placeholder="Name"
+                    className="
+              w-full border rounded-xl p-3 transition-all duration-200
+              focus:ring-2 focus:ring-[#00cfff]/20 focus:border-[#00cfff] outline-none
+              bg-white dark:bg-gray-800 
+              border-gray-300 dark:border-gray-600 
+              text-gray-900 dark:text-white 
+              placeholder-gray-500 dark:placeholder-gray-400
+            "
+                    value={formData.name}
+                    onChange={handleChange}
+                  />
+                  <textarea
+                    name="description"
+                    placeholder="Description"
+                    className="
+              w-full border rounded-xl p-3 transition-all duration-200 resize-none
+              focus:ring-2 focus:ring-[#00cfff]/20 focus:border-[#00cfff] outline-none
+              bg-white dark:bg-gray-800 
+              border-gray-300 dark:border-gray-600 
+              text-gray-900 dark:text-white 
+              placeholder-gray-500 dark:placeholder-gray-400
+            "
+                    value={formData.description}
+                    onChange={handleChange}
+                  />
+                  <input
+                    name="discordRoleId"
+                    placeholder="Discord Role ID"
+                    className="
+              w-full border rounded-xl p-3 transition-all duration-200
+              focus:ring-2 focus:ring-[#00cfff]/20 focus:border-[#00cfff] outline-none
+              bg-white dark:bg-gray-800 
+              border-gray-300 dark:border-gray-600 
+              text-gray-900 dark:text-white 
+              placeholder-gray-500 dark:placeholder-gray-400
+            "
+                    value={formData.discordRoleId}
+                    onChange={handleChange}
+                  />
+                  <input
+                    name="color"
+                    type="number"
+                    placeholder="Color"
+                    className="
+              w-full border rounded-xl p-3 transition-all duration-200
+              focus:ring-2 focus:ring-[#00cfff]/20 focus:border-[#00cfff] outline-none
+              bg-white dark:bg-gray-800 
+              border-gray-300 dark:border-gray-600 
+              text-gray-900 dark:text-white 
+              placeholder-gray-500 dark:placeholder-gray-400
+            "
+                    value={formData.color}
+                    onChange={handleChange}
+                  />
+                  <input
+                    name="level"
+                    type="number"
+                    placeholder="Level"
+                    className="
+              w-full border rounded-xl p-3 transition-all duration-200
+              focus:ring-2 focus:ring-[#00cfff]/20 focus:border-[#00cfff] outline-none
+              bg-white dark:bg-gray-800 
+              border-gray-300 dark:border-gray-600 
+              text-gray-900 dark:text-white 
+              placeholder-gray-500 dark:placeholder-gray-400
+            "
+                    value={formData.level}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div className="flex justify-end mt-6 space-x-3">
+                  <button
+                    className="
+              px-6 py-2.5 rounded-xl font-medium transition-all duration-200
+              bg-gray-100 dark:bg-gray-700 
+              text-gray-700 dark:text-gray-200 
+              hover:bg-gray-200 dark:hover:bg-gray-600 
+              border border-gray-300 dark:border-gray-600
+            "
+                    onClick={() => {
+                      setIsOpen(!isOpen)
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="
+              px-6 py-2.5 rounded-xl font-medium transition-all duration-200
+              bg-gradient-to-r from-[#00cfff] to-[#0099cc] text-white
+              hover:from-[#00b8e6] hover:to-[#0088bb]
+              shadow-lg shadow-[#00cfff]/25 hover:shadow-[#00cfff]/35
+            "
+                    onClick={handleSubmit}
+                  >
+                    Submit
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        }
       </div>
 
       {/* Main Content Grid */}
