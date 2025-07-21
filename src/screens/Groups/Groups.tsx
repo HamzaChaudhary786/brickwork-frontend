@@ -1,11 +1,44 @@
 import { UsersIcon, PlusIcon, MessageCircleIcon, CrownIcon, SearchIcon, BellIcon, SettingsIcon, EditIcon, TrashIcon, EyeIcon, XIcon, CheckIcon } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { DeleteConfirmationModal } from "../../components/ui/delete-confirmation-modal";
 import { useAbility } from "../../casl/AbilityContext";
+import { getAllRoles } from "../../apis/getAllRoles";
+import { fetchAllUsers } from "../../apis/getAllUsers";
+import { Role } from "../AdminDashboard";
+import { deleteRole } from "../../apis/deleteassignRole";
+import { addRole } from "../../apis/addRoles";
+import { assignRole } from "../../apis/assignRole";
+
+
+
+
+
+
+type User = {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  emailVerified: boolean;
+  image: string;
+  roles: [];
+  createdAt: string;
+  updatedAt: string;
+};
+
+interface RoleFormData {
+  name: string;
+  description: string;
+  discordRoleId: string;
+  color: number;
+  level: number;
+  isActive: boolean; // ✅ Add this
+
+}
 
 export const Groups = (): JSX.Element => {
 
@@ -17,6 +50,70 @@ export const Groups = (): JSX.Element => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteItem, setDeleteItem] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+
+
+  const [isAssign, setIsAssign] = useState<boolean>(false);
+  const [users, setUsers] = useState<User[]>([]); // ✅
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [showAllRoles, setShowAllRoles] = useState<boolean>(false);
+  const [deletingRoleId, setDeletingRoleId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
+  const [roleToDelete, setRoleToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [editRoles, setEditRoles] = useState<Role[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [userId, setUserId] = useState<string | null>(null)
+  const [formData, setFormData] = useState<RoleFormData>({
+    name: '',
+    description: '',
+    discordRoleId: '',
+    color: 0,
+    level: 0,
+    isActive: false
+  });
+
+
+
+  useEffect(() => {
+    const getUsersData = async () => {
+      try {
+        const data = await fetchAllUsers();
+        setUsers(data.result);
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getUsersData();
+  }, []);
+
+    useEffect(() => {
+      const fetchRoles = async () => {
+        try {
+          const allRoles = await getAllRoles();
+          setRoles(allRoles);
+        } catch (err) {
+          console.error("Failed to load roles:", err);
+        } finally {
+          setLoading(false);
+        }
+      };
+  
+      fetchRoles();
+    }, []);
+
+
+  useEffect(() => {
+    const getUsersData = async () => {
+      let data = await fetchAllUsers()
+      setUsers(data.result)
+    }
+    getUsersData()
+  }, [])
+
 
   const availableGroups = [
     {
@@ -393,6 +490,57 @@ export const Groups = (): JSX.Element => {
     >You are not authorized to view this page.</div>;
   }
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'color' || name === 'level' ? Number(value) : value,
+    }));
+  };
+  const handleSubmit = async () => {
+    let res;
+    if (isAssign) {
+      if (!userId) {
+        // Optionally show an error or return early
+        console.error("User ID is required for assigning role.");
+        return;
+      }
+      res = await assignRole(userId, formData);
+    } else {
+      res = await addRole(formData);
+    }
+
+    if (res.success) {
+      setIsOpen(false);
+    } else {
+      // Handle error
+    }
+  };
+  const handleConfirmDelete = async (roleId: string, roleName: string) => {
+    setDeletingRoleId(roleId);
+
+    try {
+      const success = await deleteRole(roleId);
+
+      if (success) {
+        // Remove the deleted role from the local state
+        setRoles(prevRoles => prevRoles.filter(role => role.id !== roleId));
+
+        // Show success message (you can use toast or console)
+        console.log(`Role "${roleName}" deleted successfully`);
+        // toast.success(`Role "${roleName}" deleted successfully`);
+      } else {
+        // Show error message
+        console.error(`Failed to delete role "${roleName}"`);
+        // toast.error(`Failed to delete role "${roleName}"`);
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      // toast.error(`Error deleting role "${roleName}"`);
+    } finally {
+      setDeletingRoleId(null);
+    }
+  };
 
   return (
     <div className="relative">
@@ -674,115 +822,256 @@ export const Groups = (): JSX.Element => {
             <CardHeader>
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <CardTitle className="text-white font-['Rajdhani',Helvetica] font-bold text-lg sm:text-xl">
-                  Role Management
+                  User Management
                 </CardTitle>
-                <Button className="bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 px-4 py-2 rounded-lg transition-colors text-sm">
+                <Button
+                  className="bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 px-4 py-2 rounded-lg transition-colors text-sm"
+                  onClick={() => {
+                    setIsAssign(false);
+                    setIsOpen(true);
+                  }}
+                >
                   <PlusIcon className="w-4 h-4 mr-2" />
-                  New Role
+                  New User
                 </Button>
               </div>
             </CardHeader>
+
             <CardContent>
-              {/* Table Header - Hidden on mobile */}
-              <div className="hidden lg:grid grid-cols-6 gap-4 p-3 bg-[#ffffff06] rounded-lg mb-4 text-[#ffffffb2] text-sm font-medium">
-                <div>User</div>
-                <div>Role</div>
-                <div>Permissions</div>
-                <div>Assigned Users</div>
-                <div>Status</div>
-                <div>Action</div>
-              </div>
+              {loading ? (
+                <div className="text-center text-white py-10 text-sm">Loading...</div>
+              ) : (
+                <>
+                  {/* Desktop Table */}
+                  <div className="hidden lg:block ">
+                    <div className="min-w-[780px]">
+                      <div className="grid grid-cols-5 gap-4 p-3 bg-[#ffffff06] rounded-lg mb-4 text-[#ffffffb2] text-sm font-medium">
+                        <div className="min-w-[160px]">User</div>
+                        <div className="min-w-[200px]">Roles</div>
+                        <div className="min-w-[200px]">Permissions</div>
+                        <div className="min-w-[100px]">Status</div>
+                        <div className="min-w-[120px]">Actions</div>
+                      </div>
 
-              {/* Table Rows - Responsive cards on mobile */}
-              <div className="space-y-2">
-                {roleManagement.map((role) => (
-                  <div key={role.id} className="lg:grid lg:grid-cols-6 lg:gap-4 p-3 bg-[#ffffff03] rounded-lg hover:bg-[#ffffff06] transition-colors lg:items-center">
-                    {/* Mobile Card Layout */}
-                    <div className="lg:hidden space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-8 h-8 bg-gradient-to-br ${role.color} rounded-full flex items-center justify-center`}>
-                            <span className="text-white font-bold text-xs">{role.avatar}</span>
+                      <div className="space-y-2">
+                        {users.map((user: any) => (
+                          <div
+                            key={user.id}
+                            className="grid grid-cols-5 gap-4 p-3 bg-[#ffffff03] rounded-lg hover:bg-[#ffffff06] transition-colors items-center"
+                          >
+                            {/* User */}
+                            <div className="flex items-center gap-3 min-w-[160px]">
+                              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span className="text-white font-bold text-xs">
+                                  {user.name?.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-white text-sm truncate">{user.name}</div>
+                              </div>
+                            </div>
+
+                            {/* Roles */}
+                            <div className="text-[#ffffffb2] text-sm min-w-[200px] truncate">
+                              {Array.isArray(user.roles)
+                                ? user.roles.map((role: any) => role.name).join(', ')
+                                : ''}
+                            </div>
+
+                            {/* Permissions */}
+                            <div className="text-[#ffffffb2] text-sm min-w-[200px] truncate">
+                              {Array.isArray(user.permissions)
+                                ? user.permissions.map((permission: any) => (permission as any).name || permission).join(', ')
+                                : ''}
+                            </div>
+
+                            {/* Status */}
+                            <div className="min-w-[100px]">
+                              <span className="px-2 py-1 rounded text-xs font-medium bg-green-600 text-white">
+                                Active
+                              </span>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-2 min-w-[120px]">
+                              <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-1">
+                                <EditIcon className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                onClick={() => { }}
+                                size="sm"
+                                variant="ghost"
+                                className="text-[#ffffffb2] hover:text-red-400 p-1"
+                              >
+                                <TrashIcon className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </div>
-                          <span className="text-white text-sm font-medium">{role.user}</span>
-                        </div>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${role.status === 'Active' ? 'bg-green-600 text-white' :
-                          role.status === 'Bot' ? 'bg-yellow-600 text-white' :
-                            'bg-red-600 text-white'
-                          }`}>
-                          {role.status}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-white text-sm font-medium">{role.role}</p>
-                        <p className="text-[#ffffffb2] text-xs">{role.permissions}</p>
-                        <p className="text-white text-xs mt-1">Assigned Users: {role.assignedUsers}</p>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-1">
-                          <EditIcon className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          onClick={() => handleDeleteClick("role", role.role, role.id)}
-                          size="sm"
-                          variant="ghost"
-                          className="text-[#ffffffb2] hover:text-red-400 p-1"
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Desktop Grid Layout */}
-                    <div className="hidden lg:contents">
-                      {/* User */}
-                      <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 bg-gradient-to-br ${role.color} rounded-full flex items-center justify-center`}>
-                          <span className="text-white font-bold text-xs">{role.avatar}</span>
-                        </div>
-                        <span className="text-white text-sm">{role.user}</span>
-                      </div>
-
-                      {/* Role */}
-                      <div className="text-white text-sm font-medium">{role.role}</div>
-
-                      {/* Permissions */}
-                      <div className="text-[#ffffffb2] text-sm">{role.permissions}</div>
-
-                      {/* Assigned Users */}
-                      <div className="text-white text-sm font-medium">{role.assignedUsers}</div>
-
-                      {/* Status */}
-                      <div>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${role.status === 'Active' ? 'bg-green-600 text-white' :
-                          role.status === 'Bot' ? 'bg-yellow-600 text-white' :
-                            'bg-red-600 text-white'
-                          }`}>
-                          {role.status}
-                        </span>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex gap-1">
-                        <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-1">
-                          <EditIcon className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          onClick={() => handleDeleteClick("role", role.role, role.id)}
-                          size="sm"
-                          variant="ghost"
-                          className="text-[#ffffffb2] hover:text-red-400 p-1"
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </Button>
+                        ))}
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+
+                  {/* Mobile Card Layout */}
+                  <div className="lg:hidden space-y-2">
+                    {users.map((user: any) => (
+                      <div
+                        key={user.id}
+                        className="p-4 bg-[#ffffff03] rounded-lg hover:bg-[#ffffff06] transition-colors"
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                <span className="text-white font-bold text-xs">
+                                  {user.name?.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <span className="text-white text-sm font-medium">{user.name}</span>
+                            </div>
+                            <span className="px-2 py-1 rounded text-xs font-medium bg-green-600 text-white">
+                              Active
+                            </span>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="text-white text-sm font-medium">{user.name}</div>
+                            <div className="text-[#ffffffb2] text-sm">
+                              <span className="font-medium">Roles: </span>
+                              {Array.isArray(user.roles)
+                                ? user.roles.map((role: any) => role.name).join(', ')
+                                : 'None'}
+                            </div>
+                            <div className="text-[#ffffffb2] text-sm">
+                              <span className="font-medium">Permissions: </span>
+                              {Array.isArray(user.permissions)
+                                ? user.permissions.map((permission: any) => (permission as any).name || permission).join(', ')
+                                : 'None'}
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2 pt-2">
+                            <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-2">
+                              <EditIcon className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              onClick={() => { }}
+                              size="sm"
+                              variant="ghost"
+                              className="text-[#ffffffb2] hover:text-red-400 p-2"
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
+
+
         </div>
+      </div>
+
+      {/* add role popup */}
+
+      <div>
+        {
+          isOpen && (
+            <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50">
+              <div className="
+        rounded-2xl shadow-2xl p-6 w-full max-w-md transition-all duration-300 transform
+        bg-white dark:bg-gray-900 
+        border border-gray-200 dark:border-gray-700 
+        shadow-black/10 dark:shadow-black/50
+      ">
+                <h2 className="
+          text-xl font-bold mb-6
+          text-gray-900 dark:text-white
+        ">
+                  {isAssign ? "Assign Role" : "Add New Role"}
+                </h2>
+
+                <div className="space-y-4">
+                  <input
+                    name="name"
+                    placeholder="Name"
+                    className="
+              w-full border rounded-xl p-3 transition-all duration-200
+              focus:ring-2 focus:ring-[#00cfff]/20 focus:border-[#00cfff] outline-none
+              bg-white dark:bg-gray-800 
+              border-gray-300 dark:border-gray-600 
+              text-gray-900 dark:text-white 
+              placeholder-gray-500 dark:placeholder-gray-400
+            "
+                    value={formData.name}
+                    onChange={handleChange}
+                  />
+                  <textarea
+                    name="description"
+                    placeholder="Description"
+                    className="
+              w-full border rounded-xl p-3 transition-all duration-200 resize-none
+              focus:ring-2 focus:ring-[#00cfff]/20 focus:border-[#00cfff] outline-none
+              bg-white dark:bg-gray-800 
+              border-gray-300 dark:border-gray-600 
+              text-gray-900 dark:text-white 
+              placeholder-gray-500 dark:placeholder-gray-400
+            "
+                    value={formData.description}
+                    onChange={handleChange}
+                  />
+                  <input
+                    name="level"
+                    type="number"
+                    placeholder="Level"
+                    className="
+              w-full border rounded-xl p-3 transition-all duration-200
+              focus:ring-2 focus:ring-[#00cfff]/20 focus:border-[#00cfff] outline-none
+              bg-white dark:bg-gray-800 
+              border-gray-300 dark:border-gray-600 
+              text-gray-900 dark:text-white 
+              placeholder-gray-500 dark:placeholder-gray-400
+            "
+                    value={formData.level}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div className="flex justify-end mt-6 space-x-3">
+                  <button
+                    className="
+              px-6 py-2.5 rounded-xl font-medium transition-all duration-200
+              bg-gray-100 dark:bg-gray-700 
+              text-gray-700 dark:text-gray-200 
+              hover:bg-gray-200 dark:hover:bg-gray-600 
+              border border-gray-300 dark:border-gray-600
+            "
+                    onClick={() => {
+                      setIsOpen(!isOpen)
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="
+              px-6 py-2.5 rounded-xl font-medium transition-all duration-200
+              bg-gradient-to-r from-[#00cfff] to-[#0099cc] text-white
+              hover:from-[#00b8e6] hover:to-[#0088bb]
+              shadow-lg shadow-[#00cfff]/25 hover:shadow-[#00cfff]/35
+            "
+                    onClick={handleSubmit}
+                  >
+                    {isAssign ? "Assign Role" : "Add Role"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        }
       </div>
 
       {/* Group Admin Modal */}
