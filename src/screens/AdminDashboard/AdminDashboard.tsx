@@ -6,11 +6,11 @@ import { Input } from "../../components/ui/input";
 import { DeleteConfirmationModal } from "../../components/ui/delete-confirmation-modal";
 import { useAbility } from "../../casl/AbilityContext";
 import { fetchAllUsers } from "../../apis/getAllUsers";
-import { addRole, RoleData } from "../../apis/addRoles";
+import { addRole } from "../../apis/addRoles";
 import { assignRole } from "../../apis/assignRole";
 import { getAllRoles } from "../../apis/getAllRoles";
 import { Role } from ".";
-import { deleteRole } from "../../apis/deleteassignRole";
+import { deleteRole } from "../../apis/deleteRole";
 
 
 interface Props {
@@ -44,6 +44,11 @@ export const AdminDashboard = (): JSX.Element => {
   const ability = useAbility();
   const [users, setUsers] = useState<User[]>([]); // ✅
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [showAllRoles, setShowAllRoles] = useState<boolean>(false);
+  const [deletingRoleId, setDeletingRoleId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
+  const [roleToDelete, setRoleToDelete] = useState<{ id: string; name: string } | null>(null);
+
   const [isAssign, setIsAssign] = useState<boolean>(false);
   const [formData, setFormData] = useState<RoleFormData>({
     name: '',
@@ -55,6 +60,8 @@ export const AdminDashboard = (): JSX.Element => {
   });
 
   const [roles, setRoles] = useState<Role[]>([]);
+  const [editRoles, setEditRoles] = useState<Role[]>([]);
+
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -440,7 +447,6 @@ export const AdminDashboard = (): JSX.Element => {
   };
   const handleSubmit = async () => {
     let res;
-
     if (isAssign) {
       if (!userId) {
         // Optionally show an error or return early
@@ -461,8 +467,8 @@ export const AdminDashboard = (): JSX.Element => {
 
 
   const handleDelete = async (id: string) => {
-    const confirmed = window.confirm("Are you sure you want to delete this role?");
-    if (!confirmed) return;
+    // const confirmed = window.confirm("Are you sure you want to delete this role?");
+    // if (!confirmed) return;
 
     const success = await deleteRole(id);
     if (success) {
@@ -479,6 +485,34 @@ export const AdminDashboard = (): JSX.Element => {
       day: 'numeric'
     });
   };
+
+
+  const handleConfirmDelete = async (roleId: string, roleName: string) => {
+    setDeletingRoleId(roleId);
+
+    try {
+      const success = await deleteRole(roleId);
+
+      if (success) {
+        // Remove the deleted role from the local state
+        setRoles(prevRoles => prevRoles.filter(role => role.id !== roleId));
+
+        // Show success message (you can use toast or console)
+        console.log(`Role "${roleName}" deleted successfully`);
+        // toast.success(`Role "${roleName}" deleted successfully`);
+      } else {
+        // Show error message
+        console.error(`Failed to delete role "${roleName}"`);
+        // toast.error(`Failed to delete role "${roleName}"`);
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      // toast.error(`Error deleting role "${roleName}"`);
+    } finally {
+      setDeletingRoleId(null);
+    }
+  };
+
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8 bg-[#0a0a0a] min-h-screen">
@@ -528,7 +562,7 @@ export const AdminDashboard = (): JSX.Element => {
               <CardTitle className="text-white font-['Rajdhani',Helvetica] font-bold text-xl">
                 Users
               </CardTitle>
-              <Button
+              {/* <Button
                 className="bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 px-4 py-2 rounded-lg text-sm"
                 onClick={() => {
                   setIsAssign(false);
@@ -537,7 +571,7 @@ export const AdminDashboard = (): JSX.Element => {
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Role
-              </Button>
+              </Button> */}
             </div>
           </CardHeader>
           <CardContent>
@@ -644,6 +678,170 @@ export const AdminDashboard = (): JSX.Element => {
           </CardContent>
         </Card>
       </div>
+
+      <div>
+        <Card className="bg-[#111111] border-[#333333]">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-white font-['Rajdhani',Helvetica] font-bold text-xl">
+                Roles
+              </CardTitle>
+              <Button
+                className="bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 px-4 py-2 rounded-lg text-sm"
+                onClick={() => {
+                  setIsAssign(false);
+                  setIsOpen(true);
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Role
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {/* Table Header - Desktop */}
+            <div className="hidden lg:grid grid-cols-12 gap-2 p-3 bg-[#ffffff06] rounded-lg mb-4 text-[#ffffffb2] text-sm font-medium">
+              <div className="col-span-3">Role Name</div>
+              <div className="col-span-3">Description</div>
+              <div className="col-span-2">Level</div>
+              <div className="col-span-2">Created</div>
+              <div className="col-span-1">Status</div>
+              <div className="col-span-1">Actions</div>
+            </div>
+
+            {/* Table Rows */}
+            <div className="space-y-2">
+              {(showAllRoles ? roles : roles?.slice(0, 10))?.map((role: any) => (
+                <div key={role.id} className="lg:grid lg:grid-cols-12 lg:gap-2 p-3 bg-[#ffffff03] rounded-lg hover:bg-[#ffffff06] transition-colors lg:items-center">
+                  {/* Mobile Layout */}
+                  <div className="lg:hidden space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                          style={{ backgroundColor: role.color ? `#${role.color.toString(16).padStart(6, '0')}` : '#666666' }}
+                        >
+                          {role.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="text-white text-sm font-medium">{role.name}</div>
+                          <div className="text-[#ffffffb2] text-xs">Level {role.level}</div>
+                        </div>
+                      </div>
+                      <div className={`w-2 h-2 rounded-full ${role.isActive ? 'bg-green-500' : 'bg-red-500'}`} />
+                    </div>
+                    <div className="text-[#ffffffb2] text-xs">
+                      <div>{role.description}</div>
+                      <div className="mt-1">Created {formatDate(role.createdAt)}</div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-[#ffffffb2] hover:text-white p-1"
+                        onClick={() => {
+                          setIsAssign(true);
+                          setIsOpen(true);
+                          // setRoleId(role.id);
+                        }}
+                      >
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          handleConfirmDelete(role.id, role.name);
+                        }}
+                        size="sm"
+                        variant="ghost"
+                        className="text-[#ffffffb2] hover:text-red-400 p-1"
+                        disabled={deletingRoleId === role.id}
+                      >
+                        {deletingRoleId === role.id ? (
+                          <div className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3 h-3" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Desktop Layout */}
+                  <div className="hidden lg:contents">
+                    <div className="col-span-3 flex items-center gap-3">
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                        style={{ backgroundColor: role.color ? `#${role.color.toString(16).padStart(6, '0')}` : '#666666' }}
+                      >
+                        {role.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-white text-sm font-medium truncate">{role.name}</div>
+                        <div className="text-[#ffffffb2] text-xs truncate">ID: {role.id.slice(0, 8)}...</div>
+                      </div>
+                    </div>
+                    <div className="col-span-3 text-[#ffffffb2] text-sm truncate">{role.description}</div>
+                    <div className="col-span-2 text-[#ffffffb2] text-sm">Level {role.level}</div>
+                    <div className="col-span-2 text-[#ffffffb2] text-sm">{formatDate(role.createdAt)}</div>
+                    <div className="col-span-1">
+                      <div className={`w-2 h-2 rounded-full ${role.isActive ? 'bg-green-500' : 'bg-red-500'}`} />
+                    </div>
+                    <div className="col-span-1 flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-[#ffffffb2] hover:text-white p-1"
+                        onClick={() => {
+                          setIsAssign(true);
+                          setIsOpen(true);
+                          setUserId(role.id)
+                          setFormData({
+                            name: role.name,
+                            description: role.description,
+                            level: role.level,
+                            discordRoleId:  '', 
+                            color:  0, 
+                            isActive: role.isActive || true 
+                          })
+                          // setRoleId(role.id);
+                        }}
+                      >
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          handleConfirmDelete(role.id, role.name);
+                        }}
+                        size="sm"
+                        variant="ghost"
+                        className="text-[#ffffffb2] hover:text-red-400 p-1"
+                        disabled={deletingRoleId === role.id}
+                      >
+                        {deletingRoleId === role.id ? (
+                          <div className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3 h-3" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* View All Button */}
+            <div className="mt-4 text-center">
+              <Button
+                variant="ghost"
+                className="text-[#30bdee] text-sm"
+                onClick={() => setShowAllRoles(!showAllRoles)}
+              >
+                {showAllRoles ? 'Show Less' : `View All Roles ${roles?.length > 10 ? `(${roles.length})` : ''}`}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div>
         {
           isOpen && (
@@ -688,35 +886,6 @@ export const AdminDashboard = (): JSX.Element => {
               placeholder-gray-500 dark:placeholder-gray-400
             "
                     value={formData.description}
-                    onChange={handleChange}
-                  />
-                  <input
-                    name="discordRoleId"
-                    placeholder="Discord Role ID"
-                    className="
-              w-full border rounded-xl p-3 transition-all duration-200
-              focus:ring-2 focus:ring-[#00cfff]/20 focus:border-[#00cfff] outline-none
-              bg-white dark:bg-gray-800 
-              border-gray-300 dark:border-gray-600 
-              text-gray-900 dark:text-white 
-              placeholder-gray-500 dark:placeholder-gray-400
-            "
-                    value={formData.discordRoleId}
-                    onChange={handleChange}
-                  />
-                  <input
-                    name="color"
-                    type="number"
-                    placeholder="Color"
-                    className="
-              w-full border rounded-xl p-3 transition-all duration-200
-              focus:ring-2 focus:ring-[#00cfff]/20 focus:border-[#00cfff] outline-none
-              bg-white dark:bg-gray-800 
-              border-gray-300 dark:border-gray-600 
-              text-gray-900 dark:text-white 
-              placeholder-gray-500 dark:placeholder-gray-400
-            "
-                    value={formData.color}
                     onChange={handleChange}
                   />
                   <input
