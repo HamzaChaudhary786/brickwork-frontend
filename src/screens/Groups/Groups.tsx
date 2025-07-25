@@ -1,4 +1,4 @@
-import { UsersIcon, PlusIcon, MessageCircleIcon, ChevronDownIcon, ImageIcon, CrownIcon, SearchIcon, BellIcon, SettingsIcon, EditIcon, TrashIcon, EyeIcon, XIcon, CheckIcon } from "lucide-react";
+import { UsersIcon, PlusIcon, MessageCircleIcon, ChevronDownIcon, ImageIcon, CrownIcon, SearchIcon, BellIcon, SettingsIcon, EditIcon, TrashIcon, EyeIcon, XIcon, CheckIcon, Loader2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
@@ -311,8 +311,10 @@ export const Groups = (): JSX.Element => {
   // Load roles when opening editPermissions popup
   const loadRoles = async () => {
     try {
+      setLoading(true)
       const data = await getAllRoles(); // Use getAllRoles API
       setRoles(data);
+      setLoading(false)
     } catch (err) {
       console.error('Failed to load roles:', err);
     }
@@ -1093,9 +1095,14 @@ export const Groups = (): JSX.Element => {
               </div>
             </CardHeader>
 
+
+
             <CardContent>
               {loading ? (
-                <div className="text-center text-white py-10 text-sm">Loading...</div>
+                <div className="flex justify-center items-center py-10">
+                  <Loader2 className="w-5 h-5 text-white animate-spin" />
+                  <span className="ml-2 text-white text-sm">Loading...</span>
+                </div>
               ) : (
                 <>
                   {/* Desktop Table */}
@@ -1136,10 +1143,14 @@ export const Groups = (): JSX.Element => {
 
                             {/* Permissions */}
                             <div className="text-[#ffffffb2] text-sm min-w-[200px] truncate">
-                              {Array.isArray(user.permissions)
-                                ? user.permissions.map((permission: Permission) => permission.name).join(', ')
+                              {Array.isArray(user.permissions) && user.permissions.length > 0
+                                ? user.permissions
+                                  .map((permission: Permission) => permission?.name ?? '')
+                                  .filter(name => name) // remove empty strings
+                                  .join(', ')
                                 : 'No permissions'}
                             </div>
+
 
                             {/* Status */}
                             <div className="min-w-[100px]">
@@ -1501,13 +1512,15 @@ export const Groups = (): JSX.Element => {
                   </div>
 
                   {/* Role Management */}
+
                   <div className="bg-[#111111] border border-[#333333] rounded-2xl p-4 sm:p-6">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
                       <h3 className="text-white text-lg sm:text-xl font-bold">Role Management</h3>
-                      <Button className="bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 px-3 sm:px-4 py-2 rounded-lg text-sm transition-colors w-full sm:w-auto"
+                      <Button
+                        className="bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 px-3 sm:px-4 py-2 rounded-lg text-sm transition-colors w-full sm:w-auto"
                         onClick={() => {
-                          setShowGroupAdminModal(!showGroupAdminModal)
-                          openAddRolePopup()
+                          setShowGroupAdminModal(!showGroupAdminModal);
+                          openAddRolePopup();
                         }}
                       >
                         <PlusIcon className="w-4 h-4 mr-2" />
@@ -1522,98 +1535,102 @@ export const Groups = (): JSX.Element => {
                       <div>Permissions</div>
                       <div>Status</div>
                       <div>Action</div>
-
                     </div>
 
-
-                    {/* Table Rows */}
-                    {roles.map((role: any) => (
-                      <div
-                        key={role.id}
-                        className="lg:grid lg:grid-cols-5 lg:gap-2 p-3 bg-[#ffffff03] rounded-lg hover:bg-[#ffffff06] transition-colors lg:items-center"
-                      >
-                        {/* Mobile Card Layout */}
-                        <div className="lg:hidden space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                                <span className="text-white font-bold text-xs">{role.name.charAt(0)}</span>
+                    {/* Scrollable Role List */}
+                    <div className="max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                      {isLoading ? (
+                        <div className="flex justify-center items-center py-10">
+                          <Loader2 className="w-5 h-5 text-white animate-spin" />
+                          <span className="ml-2 text-white text-sm">Loading roles...</span>
+                        </div>
+                      ) : roles.length === 0 ? (
+                        <div className="text-center text-[#ffffff88] text-sm py-10">No roles found.</div>
+                      ) : (
+                        roles.map((role: any) => (
+                          <div
+                            key={role.id}
+                            className="lg:grid lg:grid-cols-5 lg:gap-2 p-3 bg-[#ffffff03] rounded-lg hover:bg-[#ffffff06] transition-colors lg:items-center mb-2"
+                          >
+                            {/* Mobile Card Layout */}
+                            <div className="lg:hidden space-y-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                    <span className="text-white font-bold text-xs">{role.name.charAt(0)}</span>
+                                  </div>
+                                  <span className="text-white text-sm">{role?.name}</span>
+                                </div>
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${role.isActive ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                                  {role.isActive ? 'Active' : 'Inactive'}
+                                </span>
                               </div>
-                              <span className="text-white text-sm">{role?.name}</span>
+                              <div>
+                                <p className="text-white text-sm font-medium">{role.name}</p>
+                                <p className="text-[#ffffffb2] text-xs">
+                                  {Array.isArray(role.permissions) && role.permissions.length > 0
+                                    ? role.permissions
+                                      .map((permission: Permission) => permission?.name ?? '')
+                                      .filter(name => name)
+                                      .join(', ')
+                                    : 'No permissions'}
+                                </p>
+                              </div>
+                              <div className="flex gap-1">
+                                <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-1">
+                                  <EditIcon className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  onClick={() => handleDeleteRole(role.id)}
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-[#ffffffb2] hover:text-red-400 p-1"
+                                >
+                                  <TrashIcon className="w-3 h-3" />
+                                </Button>
+                              </div>
                             </div>
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${role.isActive ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
-                              {role.isActive ? 'Active' : 'Inactive'}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="text-white text-sm font-medium">{role.name}</p>
-                            <p className="text-[#ffffffb2] text-xs">
-                              {role.permissions.length > 0 ? role.permissions.join(', ') : 'None'}
-                            </p>
-                          </div>
-                          <div className="flex gap-1">
-                            <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-1">
-                              <EditIcon className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              onClick={() => {
-                                handleDeleteRole(role.id)
-                              }}
-                              size="sm"
-                              variant="ghost"
-                              className="text-[#ffffffb2] hover:text-red-400 p-1"
-                            >
-                              <TrashIcon className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
 
-                        {/* Desktop Grid Layout */}
-                        <div className="hidden lg:contents">
-                          {/* User */}
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                              <span className="text-white font-bold text-xs">{role.name.charAt(0)}</span>
+                            {/* Desktop Grid Layout */}
+                            <div className="hidden lg:contents">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                  <span className="text-white font-bold text-xs">{role.name.charAt(0)}</span>
+                                </div>
+                                <span className="text-white text-xs">Admin</span>
+                              </div>
+                              <div className="text-white text-xs font-medium">{role.name}</div>
+                              <p className="text-[#fff] text-xs">
+                                {Array.isArray(role.permissions) && role.permissions.length > 0
+                                  ? role.permissions
+                                    .map((permission: Permission) => permission?.name ?? '')
+                                    .filter(name => name)
+                                    .join(', ')
+                                  : 'No permissions'}
+                              </p>
+                              <div>
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${role.isActive ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                                  {role.isActive ? 'Active' : 'Inactive'}
+                                </span>
+                              </div>
+                              <div className="flex gap-1">
+                                <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-1">
+                                  <EditIcon className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  onClick={() => handleDeleteRole(role.id)}
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-[#ffffffb2] hover:text-red-400 p-1"
+                                >
+                                  <TrashIcon className="w-3 h-3" />
+                                </Button>
+                              </div>
                             </div>
-                            <span className="text-white text-xs">Admin</span>
                           </div>
-
-                          {/* Role */}
-                          <div className="text-white text-xs font-medium">{role.name}</div>
-
-                          {/* Permissions */}
-                          <div className="text-[#ffffffb2] text-xs">
-                            {role?.permissions.length > 0 ? role?.permissions.join(', ') : 'None'}
-                          </div>
-
-                          {/* Status */}
-                          <div>
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${role.isActive ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
-                              {role.isActive ? 'Active' : 'Inactive'}
-                            </span>
-                          </div>
-
-                          {/* Action Buttons */}
-                          <div className="flex gap-1">
-                            <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-1">
-                              <EditIcon className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              onClick={() => {
-                                handleDeleteRole(role.id)
-                              }}
-                              size="sm"
-                              variant="ghost"
-                              className="text-[#ffffffb2] hover:text-red-400 p-1"
-                            >
-                              <TrashIcon className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-
-
+                        ))
+                      )}
+                    </div>
                   </div>
                 </div>
 

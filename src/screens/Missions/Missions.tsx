@@ -11,7 +11,9 @@ import {
   SelectValue,
 } from "../../components/ui/select";
 import { achievements, availableMissions, missions, upcomingMissions, xpHistory } from "../../constant/MissionJson";
-import { fetchUserMissions } from "../../apis/getAllMissionUser";
+import { fetchUserMissions } from "../../apis/getMissionUser";
+import { fetchAllQuests, Quest } from "../../apis/getAllQuest";
+import { startMission } from "../../apis/startMission";
 
 interface MissionStep {
   id: number;
@@ -127,44 +129,42 @@ export const Missions = (): JSX.Element => {
   const [success, setSuccess] = useState<boolean>(false);
   const [showNewMissionModal, setShowNewMissionModal] = useState<boolean>();
   const [showCategoryDropdown, setShowCategoryDropdown] = useState<boolean>(false);
+  const [quests, setQuests] = useState<Quest[]>([]);
 
 
 
 
+  const handleStartMission = async (id: string) => {
+    const response = await startMission(id);
+
+    if (response.success && response.result) {
+      console.log('🎯 Mission Started Successfully!');
+      console.log('Title:', response.result.title);
+      console.log('XP Reward:', response.result.xpReward);
+      // ✅ You can now use `response.result` safely
+    } else {
+      console.error('❌ Failed to start mission:', response.message);
+      // ✅ Show a toast, alert, or message to the user if needed
+    }
+  };
 
 
-  const [missions, setMissions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+
 
   useEffect(() => {
-    const getMissions = async () => {
+    const loadQuests = async () => {
       try {
-        const res = await fetchUserMissions();
-        if (res.success) {
-          setMissions(res.result);
-        } else {
-          setError("Failed to load missions.");
-        }
-      } catch (err: any) {
-        setError(err.message);
+        const response = await fetchAllQuests();
+        setQuests(response.result);
+      } catch (error) {
+        console.error("Failed to load quests:", error);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    getMissions();
+    loadQuests();
   }, []);
-
-
-  console.log(missions, "set all missions apis integrated");
-
-
-
-
-
-
-
-
 
 
   // Mission categories
@@ -1223,158 +1223,151 @@ export const Missions = (): JSX.Element => {
         </Card>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
-        {/* Missions List */}
-        <Card className="bg-[#111111] border-[#333333] overflow-hidden">
-          <CardHeader className="pb-3 sm:pb-4">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 gap-4">
-              <CardTitle className="text-white font-['Rajdhani',Helvetica] font-bold text-lg sm:text-xl">
-                Missions List
-              </CardTitle>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
-                <div className="relative">
-                  <Input
-                    className="h-8 sm:h-10 bg-[#0a0a0a] border-[#333333] rounded-lg pl-8 sm:pl-10 pr-4 font-['Rajdhani',Helvetica] font-medium text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#111111] transition-all text-xs sm:text-sm w-full sm:w-48"
-                    placeholder="Search Item"
-                  />
-                  <SearchIcon className="absolute w-3 h-3 sm:w-4 sm:h-4 top-2.5 sm:top-3 left-2.5 sm:left-3 text-[#ffffffb2]" />
+      <div className="flex flex-col xl:flex-row gap-6 lg:gap-8">
+        {/* Main Content Grid */}
+        <div className="flex-1">
+          {/* Missions List */}
+          <Card className="bg-[#111111] border-[#333333] overflow-hidden">
+            <CardHeader className="pb-3 sm:pb-4">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 gap-4">
+                <CardTitle className="text-white font-['Rajdhani',Helvetica] font-bold text-lg sm:text-xl">
+                  Missions List
+                </CardTitle>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+                  <div className="relative">
+                    <Input
+                      className="h-8 sm:h-10 bg-[#0a0a0a] border-[#333333] rounded-lg pl-8 sm:pl-10 pr-4 font-['Rajdhani',Helvetica] font-medium text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#111111] transition-all text-xs sm:text-sm w-full sm:w-48"
+                      placeholder="Search Item"
+                    />
+                    <SearchIcon className="absolute w-3 h-3 sm:w-4 sm:h-4 top-2.5 sm:top-3 left-2.5 sm:left-3 text-[#ffffffb2]" />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    className="h-8 sm:h-10 px-3 sm:px-4 py-2 bg-[#0a0a0a] border border-[#333333] rounded-lg flex items-center gap-2 hover:bg-[#111111] hover:border-[#30bdee] transition-all text-[#ffffffb2] hover:text-white text-xs sm:text-sm whitespace-nowrap"
+                  >
+                    <span>Sort by</span>
+                    <FilterIcon className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  className="h-8 sm:h-10 px-3 sm:px-4 py-2 bg-[#0a0a0a] border border-[#333333] rounded-lg flex items-center gap-2 hover:bg-[#111111] hover:border-[#30bdee] transition-all text-[#ffffffb2] hover:text-white text-xs sm:text-sm"
-                >
-                  <span>Sort by</span>
-                  <FilterIcon className="w-3 h-3 sm:w-4 sm:h-4" />
-                </Button>
               </div>
-            </div>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6">
+              <div className="space-y-6 lg:space-y-8">
+                {/* Group Mission Snapshot */}
+                <div className="bg-[#111111] border border-[#333333] rounded-2xl p-3 sm:p-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
+                    <h3 className="text-white text-base sm:text-lg lg:text-xl font-bold leading-tight">
+                      Group Mission snapshot
+                    </h3>
+                    <Button
+                      className="bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 px-3 sm:px-4 py-2 rounded-lg text-sm transition-colors w-full sm:w-auto flex-shrink-0"
+                      onClick={handleNewMission}
+                    >
+                      <PlusIcon className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span className="whitespace-nowrap">New Mission</span>
+                    </Button>
+                  </div>
 
-            {/* Mission Tabs */}
-            <div className="flex gap-4 sm:gap-6 border-b border-[#333333] overflow-x-auto">
-              <button
-                onClick={() => setActiveTab("all")}
-                className={`pb-2 sm:pb-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === "all"
-                  ? "text-[#30bdee] border-b-2 border-[#30bdee]"
-                  : "text-[#ffffffb2] hover:text-white"
-                  }`}
-              >
-                All Missions
-              </button>
-              <button
-                onClick={() => setActiveTab("completed")}
-                className={`pb-2 sm:pb-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === "completed"
-                  ? "text-[#30bdee] border-b-2 border-[#30bdee]"
-                  : "text-[#ffffffb2] hover:text-white"
-                  }`}
-              >
-                Completed
-              </button>
-              <button
-                onClick={() => setActiveTab("in-progress")}
-                className={`pb-2 sm:pb-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === "in-progress"
-                  ? "text-[#30bdee] border-b-2 border-[#30bdee]"
-                  : "text-[#ffffffb2] hover:text-white"
-                  }`}
-              >
-                In Progress
-              </button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {/* New Mission Button */}
-            <div className="mb-4 sm:mb-6">
-              <Button
-                onClick={handleNewMission}
-                className="w-full bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 rounded-lg h-10 sm:h-12 font-semibold transition-colors text-sm sm:text-base"
-              >
-                <PlusIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                New Mission
-              </Button>
-            </div>
+                  {/* Missions Table Header - Hidden on mobile */}
+                  <div className="hidden lg:grid grid-cols-5 gap-2 p-3 bg-[#ffffff06] rounded-lg mb-4 text-[#ffffffb2] text-sm font-medium">
+                    <div className="truncate">Missions</div>
+                    <div className="truncate">XP Boost</div>
+                    <div className="truncate">Coins</div>
+                    <div className="truncate">Status</div>
+                    <div className="truncate">Action</div>
+                  </div>
 
-            {/* Missions List - Scrollable */}
-            <div className="space-y-3 sm:space-y-4 max-h-80 sm:max-h-96 overflow-y-auto">
-              {filteredMissions.map((mission) => (
-                <div key={mission.id} className="p-3 sm:p-4 bg-[#ffffff06] rounded-lg hover:bg-[#ffffff08] transition-colors">
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    {/* Mission Icon */}
-                    <div className={`w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br ${mission.color} rounded-xl flex items-center justify-center shadow-lg`}>
-                      <span className="text-white text-base sm:text-xl">{mission.icon}</span>
-                    </div>
-
-                    {/* Mission Details */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
-                        <h3 className="text-white font-semibold text-sm sm:text-lg truncate">{mission.title}</h3>
-                        <div className="flex items-center gap-2">
-                          <span className="text-yellow-400 font-bold text-xs sm:text-sm">{mission.xp}</span>
-                          {mission.coins > 0 && (
-                            <div className="flex items-center gap-1">
-                              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-[#30bdee] rounded-full" />
-                              <span className="text-white text-xs sm:text-sm">{mission.coins}</span>
+                  {/* Missions List with Scroll */}
+                  <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-track-[#111111] scrollbar-thumb-[#333333] hover:scrollbar-thumb-[#30bdee] pr-2">
+                    <div className="space-y-2">
+                      {quests.map((mission) => (
+                        <div
+                          key={mission.id}
+                          className="lg:grid lg:grid-cols-5 lg:gap-2 p-3 bg-[#ffffff03] rounded-lg hover:bg-[#ffffff06] transition-colors lg:items-center"
+                        >
+                          {/* Mobile Card Layout */}
+                          <div className="lg:hidden space-y-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-white text-sm font-medium leading-tight flex-1 min-w-0 break-words">
+                                {mission.title}
+                              </p>
+                              <span
+                                className={`px-2 py-1 rounded text-xs font-medium flex-shrink-0 ${mission.isActive
+                                  ? "bg-green-600 text-white"
+                                  : "bg-gray-600 text-white"
+                                  }`}
+                              >
+                                {mission.isActive ? "Active" : "Inactive"}
+                              </span>
                             </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Progress Bar for In Progress missions */}
-                      {mission.status === "In Progress" && mission.progress !== undefined && (
-                        <div className="mb-3">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-[#ffffffb2] text-xs sm:text-sm">Progress</span>
-                            <span className="text-white text-xs sm:text-sm">Step {mission.progress} of {mission.maxProgress}</span>
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <span className="text-yellow-400 text-sm font-bold flex-shrink-0">
+                                  {mission.xpRewards}
+                                </span>
+                                <div className="flex items-center gap-1 min-w-0">
+                                  <div className="w-3 h-3 bg-[#30bdee] rounded-full flex-shrink-0" />
+                                  <span className="text-white text-sm truncate">{mission.coinsRewards}</span>
+                                </div>
+                              </div>
+                              <div className="flex gap-1 flex-shrink-0">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-[#ffffffb2] hover:text-white px-2 py-1 text-xs whitespace-nowrap"
+                                  onClick={() => { handleStartMission(mission.id) }}
+                                >
+                                  Start Mission
+                                </Button>
+                              </div>
+                            </div>
                           </div>
-                          <div className="w-full bg-[#333333] rounded-full h-1.5 sm:h-2">
-                            <div
-                              className="bg-gradient-to-r from-[#30bdee] to-[#65cbff] h-1.5 sm:h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${(mission.progress! / mission.maxProgress!) * 100}%` }}
-                            />
+
+                          {/* Desktop Grid Layout */}
+                          <div className="hidden lg:contents">
+                            <div className="text-white text-sm truncate pr-2" title={mission.title}>
+                              {mission.title}
+                            </div>
+                            <div className="text-yellow-400 text-sm font-bold truncate">
+                              {mission.xpRewards}
+                            </div>
+                            <div className="flex items-center gap-1 min-w-0">
+                              <div className="w-3 h-3 bg-[#30bdee] rounded-full flex-shrink-0" />
+                              <span className="text-white text-sm truncate">{mission.coinsRewards}</span>
+                            </div>
+                            <div>
+                              <span
+                                className={`px-2 py-1 rounded text-xs font-medium inline-block ${mission.isActive
+                                  ? "bg-green-600 text-white"
+                                  : "bg-gray-600 text-white"
+                                  }`}
+                              >
+                                {mission.isActive ? "Active" : "Inactive"}
+                              </span>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-[#ffffffb2] hover:text-white px-2 py-1 text-xs whitespace-nowrap"
+                                onClick={() => { handleStartMission(mission.id) }}
+
+                              >
+                                Start Mission
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                      )}
-
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(mission.status)}
-                          <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(mission.status)}`}>
-                            {mission.status}
-                          </span>
-                        </div>
-
-                        {mission.status === "Available" && (
-                          <Button className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-1 rounded-lg text-xs sm:text-sm">
-                            Start
-                          </Button>
-                        )}
-                        {mission.status === "In Progress" && (
-                          <div className="flex gap-2">
-                            <Button className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-1 rounded-lg text-xs sm:text-sm">
-                              Continue
-                            </Button>
-                            <Button
-                              onClick={() => handleSubmitMission(mission)}
-                              disabled={!areAllStepsCompleted(mission)}
-                              className={`px-3 sm:px-4 py-1 rounded-lg text-xs sm:text-sm transition-all ${areAllStepsCompleted(mission)
-                                ? 'bg-[#30bdee] hover:bg-[#2aa3d1] text-white'
-                                : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                                }`}
-                            >
-                              Submit
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                      ))}
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
+              </div>
+            </CardContent>
+          </Card>
+        </div>
         {/* Right Column - XP History and Upcoming */}
-        <div className="space-y-6 lg:space-y-8">
+        <div className="flex-1 xl:w-80 space-y-6 lg:space-y-8">
           {/* XP History */}
           <Card className="bg-[#111111] border-[#333333] overflow-hidden">
             <CardHeader className="pb-3 sm:pb-4">
@@ -1442,5 +1435,6 @@ export const Missions = (): JSX.Element => {
         </div>
       </div>
     </div>
+
   );
 };
