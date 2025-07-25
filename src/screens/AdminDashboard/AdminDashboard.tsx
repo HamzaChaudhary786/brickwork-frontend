@@ -1,21 +1,19 @@
-import { UsersIcon, ShoppingBagIcon, TrendingUpIcon, DollarSignIcon, SearchIcon, FilterIcon, MoreHorizontalIcon, CheckIcon, XIcon, EyeIcon, PlusIcon, EditIcon, TrashIcon, InfoIcon, Plus, Edit, Trash2 } from "lucide-react";
+import { UsersIcon, ShoppingBagIcon, TrendingUpIcon, DollarSignIcon, SearchIcon, FilterIcon, MoreHorizontalIcon, CheckIcon, XIcon, EyeIcon, PlusIcon, EditIcon, TrashIcon, InfoIcon } from "lucide-react";
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import { ApproveModal, RejectModal } from "../../components/ui/approve-reject-modals";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
 import { DeleteConfirmationModal } from "../../components/ui/delete-confirmation-modal";
-import { useAbility } from "../../casl/AbilityContext";
-
-
-interface Props {
-  isOpen: boolean;
-  onClose: () => void;
-}
 
 export const AdminDashboard = (): JSX.Element => {
-  const ability = useAbility();
-  const [loading, setLoading] = useState<boolean>(true);
-
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteItem, setDeleteItem] = useState<{
     type: string;
@@ -25,38 +23,67 @@ export const AdminDashboard = (): JSX.Element => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showPlayerInfoModal, setShowPlayerInfoModal] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
+  const [showAddRoleModal, setShowAddRoleModal] = useState(false);
+  const [showAddParticipantsModal, setShowAddParticipantsModal] = useState(false);
+  const [showAddBadgesModal, setShowAddBadgesModal] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [selectedApplicant, setSelectedApplicant] = useState<any>(null);
+  const [newRole, setNewRole] = useState({
+    discordRole: 'Mission Reviewers',
+    interval: 'Daily',
+    xpReward: '+25',
+    coinsReward: '00',
+    enableStatus: true
+  });
+  const [selectedMission, setSelectedMission] = useState('Join Your First Group');
+  const [selectedBadge, setSelectedBadge] = useState('Welcome Aboard');
+  const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
+  const [selectedBadgeUsers, setSelectedBadgeUsers] = useState<string[]>([]);
+
+  // Sample users data for participants and badges
+  const sampleUsers = [
+    { id: '1', name: 'SandGamer #5678', role: 'Member', avatar: 'SG' },
+    { id: '2', name: 'AlliGamer1234', role: 'Subscriber', avatar: 'AG' },
+    { id: '3', name: 'PixelArtist#3456', role: 'Mission Reviewer', avatar: 'PA' },
+    { id: '4', name: 'CodeNinja#9012', role: 'Event Organizer', avatar: 'CN' },
+    { id: '5', name: 'Johny #5678', role: 'Streamer', avatar: 'JH' }
+  ];
+
   const stats = [
-    {
-      title: "Total Users",
-      value: "2,847",
-      icon: UsersIcon,
+    { 
+      title: "Total Users", 
+      value: "2,847", 
+      icon: UsersIcon, 
       color: "text-[#30bdee]",
       bgColor: "bg-[#30bdee]/10",
       change: "+12%",
       changeColor: "text-green-400"
     },
-    {
-      title: "Total Sales",
-      value: "$45,231",
-      icon: DollarSignIcon,
+    { 
+      title: "Total Sales", 
+      value: "$45,231", 
+      icon: DollarSignIcon, 
       color: "text-green-400",
       bgColor: "bg-green-400/10",
       change: "+8%",
       changeColor: "text-green-400"
     },
-    {
-      title: "Orders",
-      value: "1,234",
-      icon: ShoppingBagIcon,
+    { 
+      title: "Orders", 
+      value: "1,234", 
+      icon: ShoppingBagIcon, 
       color: "text-purple-400",
       bgColor: "bg-purple-400/10",
       change: "+15%",
       changeColor: "text-green-400"
     },
-    {
-      title: "Revenue",
-      value: "$12,847",
-      icon: TrendingUpIcon,
+    { 
+      title: "Revenue", 
+      value: "$12,847", 
+      icon: TrendingUpIcon, 
       color: "text-orange-400",
       bgColor: "bg-orange-400/10",
       change: "+5%",
@@ -285,9 +312,9 @@ export const AdminDashboard = (): JSX.Element => {
 
   const handleDeleteConfirm = async () => {
     if (!deleteItem) return;
-
+    
     setIsDeleting(true);
-
+    
     // Simulate delete operation
     setTimeout(() => {
       console.log(`Deleting ${deleteItem.type}: ${deleteItem.name} (ID: ${deleteItem.id})`);
@@ -313,9 +340,45 @@ export const AdminDashboard = (): JSX.Element => {
     setSelectedPlayer(null);
   };
 
+  const handleApproveClick = (applicant?: any) => {
+    setSelectedApplicant(applicant);
+    setShowApproveModal(true);
+  };
+
+  const handleRejectClick = (applicant?: any) => {
+    setSelectedApplicant(applicant);
+    setShowRejectModal(true);
+  };
+
+  const handleApproveConfirm = async () => {
+    setIsApproving(true);
+    
+    // Simulate approval process
+    setTimeout(() => {
+      console.log('Approving applicant:', selectedApplicant?.name || 'selected applicant');
+      setIsApproving(false);
+      setShowApproveModal(false);
+      setSelectedApplicant(null);
+      // Here you would typically update the application status in your data
+    }, 2000);
+  };
+
+  const handleRejectConfirm = async () => {
+    setIsRejecting(true);
+    
+    // Simulate rejection process
+    setTimeout(() => {
+      console.log('Rejecting applicant:', selectedApplicant?.name || 'selected applicant');
+      setIsRejecting(false);
+      setShowRejectModal(false);
+      setSelectedApplicant(null);
+      // Here you would typically update the application status in your data
+    }, 2000);
+  };
+
   const getDeleteModalContent = () => {
     if (!deleteItem) return { title: "", description: "" };
-
+    
     switch (deleteItem.type) {
       case "role":
         return {
@@ -344,41 +407,6 @@ export const AdminDashboard = (): JSX.Element => {
         };
     }
   };
-
-
-  if (!ability.can('manage', 'all')) {
-    return <div className="flex items-center justify-center h-screen text-white font-bold text-xl"
-    >Admin access only</div>;
-  }
-
-
-  // const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-  //   const { name, value, type } = e.target;
-  //   setFormData((prev) => ({
-  //     ...prev,
-  //     [name]: type === 'number' ? Number(value) : value,
-  //   }));
-  // };
-
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-   
-  };
-
-
-
-
-  const formatDate = (dateString: any) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-
-  
-
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8 bg-[#0a0a0a] min-h-screen">
@@ -420,8 +448,6 @@ export const AdminDashboard = (): JSX.Element => {
           </Card>
         ))}
       </div>
-
-   
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
@@ -497,10 +523,15 @@ export const AdminDashboard = (): JSX.Element => {
 
                       {/* Actions - 3 columns */}
                       <div className="col-span-3 flex gap-1">
-                        <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-400/10 px-2 py-1 rounded text-xs flex-1 min-w-0">
+                        <Button onClick={() => handleRejectClick(mission)}
+                          size="sm" 
+                          variant="ghost" 
+                          className="text-red-400 hover:text-red-300 hover:bg-red-400/10 px-2 py-1 rounded text-xs flex-1 min-w-0">
                           Reject
                         </Button>
-                        <Button size="sm" className="bg-[#30bdee] hover:bg-[#2aa3d1] text-white px-2 py-1 rounded text-xs flex-1 min-w-0">
+                        <Button onClick={() => handleApproveClick(mission)}
+                          size="sm" 
+                          className="bg-[#30bdee] hover:bg-[#2aa3d1] text-white px-2 py-1 rounded text-xs flex-1 min-w-0">
                           Approve
                         </Button>
                       </div>
@@ -527,7 +558,7 @@ export const AdminDashboard = (): JSX.Element => {
                 </CardTitle>
                 <Button className="bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 px-4 py-2 rounded-lg text-sm">
                   <PlusIcon className="w-4 h-4 mr-2" />
-                  Add Participants
+                  <span onClick={() => setShowAddParticipantsModal(true)}>Add Participants</span>
                 </Button>
               </div>
             </CardHeader>
@@ -629,14 +660,16 @@ export const AdminDashboard = (): JSX.Element => {
                   <p className="text-[#ffffffb2] text-sm mb-4 leading-relaxed">{application.message}</p>
                   <div className="flex gap-3">
                     <Button
-                      onClick={() => handleDeleteClick("application", application.user, application.id)}
+                      onClick={() => handleRejectClick(application)}
                       size="sm"
                       variant="ghost"
                       className="text-red-400 hover:text-red-300 hover:bg-red-400/10 px-4 py-2 rounded-lg"
                     >
                       Reject
                     </Button>
-                    <Button size="sm" className="bg-[#30bdee] hover:bg-[#2aa3d1] text-white px-4 py-2 rounded-lg">
+                    <Button onClick={() => handleApproveClick(application)}
+                      size="sm" 
+                      className="bg-[#30bdee] hover:bg-[#2aa3d1] text-white px-4 py-2 rounded-lg">
                       Approve
                     </Button>
                   </div>
@@ -664,7 +697,7 @@ export const AdminDashboard = (): JSX.Element => {
                 </CardTitle>
                 <Button className="bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 px-4 py-2 rounded-lg text-sm">
                   <PlusIcon className="w-4 h-4 mr-2" />
-                  Add Role Reward
+                  <span onClick={() => setShowAddRoleModal(true)}>Add Role Reward</span>
                 </Button>
               </div>
             </CardHeader>
@@ -763,7 +796,7 @@ export const AdminDashboard = (): JSX.Element => {
                 </CardTitle>
                 <Button className="bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 px-4 py-2 rounded-lg text-sm">
                   <PlusIcon className="w-4 h-4 mr-2" />
-                  Add Badges
+                  <span onClick={() => setShowAddBadgesModal(true)}>Add Badges</span>
                 </Button>
               </div>
             </CardHeader>
@@ -881,11 +914,11 @@ export const AdminDashboard = (): JSX.Element => {
       {showPlayerInfoModal && selectedPlayer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
-          <div
+          <div 
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={handleClosePlayerInfo}
           />
-
+          
           {/* Modal */}
           <div className="relative bg-[#111111] w-full max-w-md rounded-2xl border border-[#333333] p-6 max-h-[90vh] overflow-y-auto">
             {/* Header */}
@@ -990,6 +1023,409 @@ export const AdminDashboard = (): JSX.Element => {
         description={getDeleteModalContent().description}
         itemName={deleteItem?.name}
         isLoading={isDeleting}
+      />
+
+      {/* Add Role Reward Modal */}
+      {showAddRoleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowAddRoleModal(false)}
+          />
+          
+          <div className="relative bg-[#111111] w-full max-w-md rounded-2xl border border-[#333333] p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-white text-xl font-bold">Add Role Reward</h3>
+              <Button
+                variant="ghost"
+                onClick={() => setShowAddRoleModal(false)}
+                className="text-[#ffffffb2] hover:text-white p-2"
+              >
+                <XIcon className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-[#ffffffb2] text-sm block mb-2">Select Discord Role</label>
+                <Select value={newRole.discordRole} onValueChange={(value) => setNewRole({...newRole, discordRole: value})}>
+                  <SelectTrigger className="bg-[#0a0a0a] border-[#333333] text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#111111] border-[#333333]">
+                    <SelectItem value="Mission Reviewers" className="text-white hover:bg-[#333333]">Mission Reviewers</SelectItem>
+                    <SelectItem value="Event Organizer" className="text-white hover:bg-[#333333]">Event Organizer</SelectItem>
+                    <SelectItem value="Moderator" className="text-white hover:bg-[#333333]">Moderator</SelectItem>
+                    <SelectItem value="VIP" className="text-white hover:bg-[#333333]">VIP</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-[#ffffffb2] text-sm block mb-2">Set Interval</label>
+                <Select value={newRole.interval} onValueChange={(value) => setNewRole({...newRole, interval: value})}>
+                  <SelectTrigger className="bg-[#0a0a0a] border-[#333333] text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#111111] border-[#333333]">
+                    <SelectItem value="Daily" className="text-white hover:bg-[#333333]">Daily</SelectItem>
+                    <SelectItem value="Weekly" className="text-white hover:bg-[#333333]">Weekly</SelectItem>
+                    <SelectItem value="Monthly" className="text-white hover:bg-[#333333]">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[#ffffffb2] text-sm block mb-2">XP Reward</label>
+                  <Input
+                    value={newRole.xpReward}
+                    onChange={(e) => setNewRole({...newRole, xpReward: e.target.value})}
+                    className="bg-[#0a0a0a] border-[#333333] text-white"
+                    placeholder="+25"
+                  />
+                </div>
+                <div>
+                  <label className="text-[#ffffffb2] text-sm block mb-2">Coins Reward</label>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 bg-yellow-400 rounded-full" />
+                    <Input
+                      value={newRole.coinsReward}
+                      onChange={(e) => setNewRole({...newRole, coinsReward: e.target.value})}
+                      className="bg-[#0a0a0a] border-[#333333] text-white pl-10"
+                      placeholder="00"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <label className="text-[#ffffffb2] text-sm">Enable Status</label>
+                <div 
+                  className={`w-12 h-6 rounded-full cursor-pointer transition-colors ${newRole.enableStatus ? 'bg-[#30bdee]' : 'bg-gray-600'}`}
+                  onClick={() => setNewRole({...newRole, enableStatus: !newRole.enableStatus})}
+                >
+                  <div className={`w-6 h-6 bg-white rounded-full transition-transform ${newRole.enableStatus ? 'translate-x-6' : 'translate-x-0'}`} />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                onClick={() => setShowAddRoleModal(false)}
+                variant="outline"
+                className="flex-1 border-[#333333] text-[#ffffffb2] hover:text-white hover:bg-[#ffffff12]"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  console.log('Adding role:', newRole);
+                  setShowAddRoleModal(false);
+                }}
+                className="flex-1 bg-[#30bdee] hover:bg-[#2aa3d1] text-white"
+              >
+                Add Role
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Participants Modal */}
+      {showAddParticipantsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowAddParticipantsModal(false)}
+          />
+          
+          <div className="relative bg-[#111111] w-full max-w-md rounded-2xl border border-[#333333] p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-white text-xl font-bold">Add Participants</h3>
+              <Button
+                variant="ghost"
+                onClick={() => setShowAddParticipantsModal(false)}
+                className="text-[#ffffffb2] hover:text-white p-2"
+              >
+                <XIcon className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-[#ffffffb2] text-sm block mb-2">Select Mission</label>
+                <Select value={selectedMission} onValueChange={setSelectedMission}>
+                  <SelectTrigger className="bg-[#0a0a0a] border-[#333333] text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#111111] border-[#333333]">
+                    <SelectItem value="Join Your First Group" className="text-white hover:bg-[#333333]">Join Your First Group</SelectItem>
+                    <SelectItem value="Complete Daily Login" className="text-white hover:bg-[#333333]">Complete Daily Login</SelectItem>
+                    <SelectItem value="Submit Bug Report" className="text-white hover:bg-[#333333]">Submit Bug Report</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-[#ffffffb2] text-sm block mb-2">Select Participants</label>
+                
+                <div className="relative mb-3">
+                  <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#ffffffb2]" />
+                  <Input
+                    placeholder="Search"
+                    className="bg-[#0a0a0a] border-[#333333] text-white pl-10"
+                  />
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <Select defaultValue="role">
+                      <SelectTrigger className="bg-transparent border-none text-[#ffffffb2] text-sm w-20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#111111] border-[#333333]">
+                        <SelectItem value="role" className="text-white">By Role</SelectItem>
+                        <SelectItem value="name" className="text-white">By Name</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex justify-between mb-3">
+                  <Button
+                    variant="ghost"
+                    className="text-[#30bdee] hover:text-white text-sm"
+                    onClick={() => setSelectedParticipants(sampleUsers.map(u => u.id))}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="text-[#ffffffb2] hover:text-white text-sm"
+                    onClick={() => setSelectedParticipants([])}
+                  >
+                    Clear All
+                  </Button>
+                </div>
+
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {sampleUsers.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between p-2 bg-[#ffffff06] rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedParticipants.includes(user.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedParticipants([...selectedParticipants, user.id]);
+                            } else {
+                              setSelectedParticipants(selectedParticipants.filter(id => id !== user.id));
+                            }
+                          }}
+                          className="text-[#30bdee]"
+                        />
+                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold text-xs">{user.avatar}</span>
+                        </div>
+                        <div>
+                          <p className="text-white text-sm font-medium">{user.name}</p>
+                        </div>
+                      </div>
+                      <span className="text-[#ffffffb2] text-xs">{user.role}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                onClick={() => setShowAddParticipantsModal(false)}
+                variant="outline"
+                className="flex-1 border-[#333333] text-[#ffffffb2] hover:text-white hover:bg-[#ffffff12]"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  console.log('Adding participants:', selectedParticipants, 'to mission:', selectedMission);
+                  setShowAddParticipantsModal(false);
+                }}
+                className="flex-1 bg-[#30bdee] hover:bg-[#2aa3d1] text-white"
+              >
+                Mark Completed
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Badges Modal */}
+      {showAddBadgesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowAddBadgesModal(false)}
+          />
+          
+          <div className="relative bg-[#111111] w-full max-w-md rounded-2xl border border-[#333333] p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-white text-xl font-bold">Add Badges</h3>
+              <Button
+                variant="ghost"
+                onClick={() => setShowAddBadgesModal(false)}
+                className="text-[#ffffffb2] hover:text-white p-2"
+              >
+                <XIcon className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-[#ffffffb2] text-sm block mb-2">Select Badges</label>
+                <Select value={selectedBadge} onValueChange={setSelectedBadge}>
+                  <SelectTrigger className="bg-[#0a0a0a] border-[#333333] text-white">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs">✓</span>
+                      </div>
+                      <SelectValue />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#111111] border-[#333333]">
+                    <SelectItem value="Welcome Aboard" className="text-white hover:bg-[#333333]">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs">✓</span>
+                        </div>
+                        Welcome Aboard
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Social Butterfly" className="text-white hover:bg-[#333333]">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs">🦋</span>
+                        </div>
+                        Social Butterfly
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Event Champion" className="text-white hover:bg-[#333333]">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs">🏆</span>
+                        </div>
+                        Event Champion
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-[#ffffffb2] text-sm block mb-2">Select Players</label>
+                
+                <div className="relative mb-3">
+                  <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#ffffffb2]" />
+                  <Input
+                    placeholder="Search User"
+                    className="bg-[#0a0a0a] border-[#333333] text-white pl-10"
+                  />
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <Select defaultValue="role">
+                      <SelectTrigger className="bg-transparent border-none text-[#ffffffb2] text-sm w-20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#111111] border-[#333333]">
+                        <SelectItem value="role" className="text-white">By Role</SelectItem>
+                        <SelectItem value="name" className="text-white">By Name</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex justify-between mb-3">
+                  <Button
+                    variant="ghost"
+                    className="text-[#30bdee] hover:text-white text-sm"
+                    onClick={() => setSelectedBadgeUsers(sampleUsers.map(u => u.id))}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="text-[#ffffffb2] hover:text-white text-sm"
+                    onClick={() => setSelectedBadgeUsers([])}
+                  >
+                    Clear All
+                  </Button>
+                </div>
+
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {sampleUsers.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between p-2 bg-[#ffffff06] rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedBadgeUsers.includes(user.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedBadgeUsers([...selectedBadgeUsers, user.id]);
+                            } else {
+                              setSelectedBadgeUsers(selectedBadgeUsers.filter(id => id !== user.id));
+                            }
+                          }}
+                          className="text-[#30bdee]"
+                        />
+                        <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold text-xs">{user.avatar}</span>
+                        </div>
+                        <div>
+                          <p className="text-white text-sm font-medium">{user.name}</p>
+                        </div>
+                      </div>
+                      <span className="text-[#ffffffb2] text-xs">{user.role}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                onClick={() => setShowAddBadgesModal(false)}
+                variant="outline"
+                className="flex-1 border-[#333333] text-[#ffffffb2] hover:text-white hover:bg-[#ffffff12]"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  console.log('Assigning badge:', selectedBadge, 'to users:', selectedBadgeUsers);
+                  setShowAddBadgesModal(false);
+                }}
+                className="flex-1 bg-[#30bdee] hover:bg-[#2aa3d1] text-white"
+              >
+                Assign Badge
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approve Modal */}
+      <ApproveModal
+        isOpen={showApproveModal}
+        onClose={() => setShowApproveModal(false)}
+        onConfirm={handleApproveConfirm}
+        applicantName={selectedApplicant?.name || "selected applicants"}
+        isLoading={isApproving}
+      />
+
+      {/* Reject Modal */}
+      <RejectModal
+        isOpen={showRejectModal}
+        onClose={() => setShowRejectModal(false)}
+        onConfirm={handleRejectConfirm}
+        applicantName={selectedApplicant?.name || "selected applicants"}
+        isLoading={isRejecting}
       />
     </div>
   );

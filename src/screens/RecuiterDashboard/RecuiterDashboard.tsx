@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import { ApproveModal, RejectModal } from "../../components/ui/approve-reject-modals";
 import {
   Select,
   SelectContent,
@@ -25,9 +26,9 @@ export const RecruiterDashboard = (): JSX.Element => {
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
   const [showActionPopup, setShowActionPopup] = useState(false);
   const [actionPopupPosition, setActionPopupPosition] = useState({ x: 0, y: 0 });
-  const [expandedSections, setExpandedSections] = useState({
-    agreements: true,
-    questions: true
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    agreements: false,
+    questions: false,
   });
   const [showSendMessageModal, setShowSendMessageModal] = useState(false);
   const [messageForm, setMessageForm] = useState({
@@ -35,6 +36,10 @@ export const RecruiterDashboard = (): JSX.Element => {
     discordId: '',
     message: ''
   });
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
 
   // Statistics data matching the screenshot
   const stats = [
@@ -359,8 +364,8 @@ export const RecruiterDashboard = (): JSX.Element => {
     setShowPlayerModal(true);
   };
 
-  const handleViewDetails = () => {
-    setShowActionPopup(false);
+  const handleViewDetails = (player: any) => {
+    setSelectedPlayer(player);
     setShowPlayerModal(true);
   };
 
@@ -374,6 +379,36 @@ export const RecruiterDashboard = (): JSX.Element => {
     console.log('Rejecting player:', selectedPlayer?.name);
     setShowActionPopup(false);
     // Add rejection logic here
+  };
+
+  const handleApproveConfirm = async () => {
+    if (!selectedPlayer) return;
+    
+    setIsApproving(true);
+    
+    // Simulate approval process
+    setTimeout(() => {
+      console.log('Approving player:', selectedPlayer.name);
+      setIsApproving(false);
+      setShowApproveModal(false);
+      setSelectedPlayer(null);
+      // Here you would typically update the application status in your data
+    }, 2000);
+  };
+
+  const handleRejectConfirm = async () => {
+    if (!selectedPlayer) return;
+    
+    setIsRejecting(true);
+    
+    // Simulate rejection process
+    setTimeout(() => {
+      console.log('Rejecting player:', selectedPlayer.name);
+      setIsRejecting(false);
+      setShowRejectModal(false);
+      setSelectedPlayer(null);
+      // Here you would typically update the application status in your data
+    }, 2000);
   };
 
   const handleCloseModal = () => {
@@ -701,10 +736,11 @@ export const RecruiterDashboard = (): JSX.Element => {
             left: `${actionPopupPosition.x}px`,
             top: `${actionPopupPosition.y}px`,
           }}
+          onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
         >
           <button
-            onClick={handleViewDetails}
+            onClick={() => handleViewDetails(selectedPlayer!)}
             className="w-full px-4 py-2 text-left text-white hover:bg-[#3a3a3a] transition-colors flex items-center gap-2 text-sm"
           >
             <EyeIcon className="w-4 h-4" />
@@ -714,14 +750,14 @@ export const RecruiterDashboard = (): JSX.Element => {
           {selectedPlayer.status === 'Pending' && (
             <>
               <button
-                onClick={handleApproveSelected}
+                onClick={() => setShowApproveModal(true)}
                 className="w-full px-4 py-2 text-left text-green-400 hover:bg-[#3a3a3a] transition-colors flex items-center gap-2 text-sm"
               >
                 <CheckIcon className="w-4 h-4" />
                 Approve Selected
               </button>
               <button
-                onClick={handleRejectSelected}
+                onClick={() => setShowRejectModal(true)}
                 className="w-full px-4 py-2 text-left text-red-400 hover:bg-[#3a3a3a] transition-colors flex items-center gap-2 text-sm"
               >
                 <XIcon className="w-4 h-4" />
@@ -918,10 +954,10 @@ export const RecruiterDashboard = (): JSX.Element => {
 
             {/* Action Buttons */}
             <div className="p-4 border-t border-[#333333] space-y-3">
-              <Button  onClick={handleSendMessage}
-
-               className="w-full bg-[#30bdee] hover:bg-[#2aa3d1] text-white rounded-lg">
-                
+              <Button 
+                onClick={handleSendMessage}
+                className="w-full bg-[#30bdee] hover:bg-[#2aa3d1] text-white rounded-lg"
+              >
                 Send Message To Applicant
               </Button>
               <div className="flex gap-3">
@@ -949,6 +985,7 @@ export const RecruiterDashboard = (): JSX.Element => {
             onClick={handleCloseSendMessageModal}
           />
           
+          {/* Modal */}
           <div className="relative bg-[#111111] w-full max-w-lg rounded-2xl border border-[#333333] p-6">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
@@ -1018,6 +1055,24 @@ export const RecruiterDashboard = (): JSX.Element => {
           </div>
         </div>
       )}
+
+      {/* Approve Modal */}
+      <ApproveModal
+        isOpen={showApproveModal}
+        onClose={() => setShowApproveModal(false)}
+        onConfirm={handleApproveConfirm}
+        applicantName={selectedPlayer?.playerDetails?.basicInfo?.realName || selectedPlayer?.name}
+        isLoading={isApproving}
+      />
+
+      {/* Reject Modal */}
+      <RejectModal
+        isOpen={showRejectModal}
+        onClose={() => setShowRejectModal(false)}
+        onConfirm={handleRejectConfirm}
+        applicantName={selectedPlayer?.playerDetails?.basicInfo?.realName || selectedPlayer?.name}
+        isLoading={isRejecting}
+      />
     </div>
   );
 };
