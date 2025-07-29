@@ -1,5 +1,5 @@
 import { ClockIcon, CheckCircleIcon, StarIcon, CoinsIcon, PlusIcon, SearchIcon, FilterIcon, TrophyIcon, ZapIcon, TargetIcon, UserIcon, CalendarIcon, AwardIcon, XIcon, ChevronDownIcon, ImageIcon, UploadIcon } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -14,24 +14,21 @@ import { achievements, availableMissions, missions, upcomingMissions, xpHistory 
 import { fetchUserMissions } from "../../apis/getMissionUser";
 import { fetchAllQuests, Quest } from "../../apis/getAllQuest";
 import { startMission } from "../../apis/startMission";
+import { fetchAllUsers } from "../../apis/getAllUsers";
+import { User } from "../Dashboard";
 
-interface MissionStep {
-  id: number;
-  title: string;
-  xpReward: string;
-  coinsReward: string;
-  description: string;
-  rewardType: string;
-}
+
+
 
 interface MissionData {
   title: string;
   description: string;
-  banner: number[]; // Add this line
+  banner: number[];
   category: string;
   type: string;
   xpRewards: string;
   coinsRewards: string;
+  participants: string[]; // ✅ Changed from string to string[]
   unlockConditions: string;
   submissionDeadline: string;
   startDate: string;
@@ -40,7 +37,7 @@ interface MissionData {
   steps: MissionStep[];
 }
 
-// Replace the FormattedAPIData interface with this:
+// ✅ Fixed FormattedAPIData interface to include participants
 interface FormattedAPIData {
   title: string;
   description: string;
@@ -54,6 +51,7 @@ interface FormattedAPIData {
   visibility: string;
   xpRewards: number;
   coinsRewards: number;
+  participants: string[]; // ✅ Added participants field
   steps: {
     title: string;
     description: string;
@@ -64,6 +62,28 @@ interface FormattedAPIData {
     proof: number[];
   }[];
 }
+
+// ✅ Fixed MultiSelectProps interface
+interface MultiSelectProps {
+  users: User[];
+  selectedIds: string[]; // ✅ Changed from string to string[]
+  onChange: (selectedIds: string[]) => void; // ✅ Changed parameter type
+  placeholder?: string;
+  disabled?: boolean;
+}
+
+interface MissionStep {
+  id: number;
+  title: string;
+  xpReward: string;
+  coinsReward: string;
+  description: string;
+  rewardType: string;
+}
+
+
+// Replace the FormattedAPIData interface with this:
+
 
 interface MissionCategory {
   id: number;
@@ -118,6 +138,23 @@ interface FormattedAPIData {
   }[];
 }
 
+interface MultiSelectProps {
+  users: User[];
+  selectedIds: string;
+  onChange: (selectedIds: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+};
+declare const DarkProfessionalMultiSelect: React.FC<{
+  users: User[];
+  selectedIds: string[];
+  onChange: (selectedIds: string[]) => void;
+  placeholder: string;
+}>;
+
+
+
+
 export const Missions = (): JSX.Element => {
   const [activeTab, setActiveTab] = useState("all");
   const [showSubmitMissionModal, setShowSubmitMissionModal] = useState(false);
@@ -130,9 +167,48 @@ export const Missions = (): JSX.Element => {
   const [showNewMissionModal, setShowNewMissionModal] = useState<boolean>();
   const [showCategoryDropdown, setShowCategoryDropdown] = useState<boolean>(false);
   const [quests, setQuests] = useState<Quest[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  // ✅ Fixed initial state
+  const [missionData, setMissionData] = useState<MissionData>({
+    title: "",
+    description: "",
+    banner: [],
+    category: "Onboarding",
+    type: "Step by Step",
+    xpRewards: "",
+    coinsRewards: "",
+    participants: [], // ✅ Changed from "" to []
+    unlockConditions: "No Requirements",
+    submissionDeadline: "1 Week",
+    startDate: "",
+    endDate: "",
+    visibility: "Public",
+    steps: [
+      {
+        id: 1,
+        title: "",
+        xpReward: "",
+        coinsReward: "",
+        description: "",
+        rewardType: "Screenshot Upload"
+      }
+    ]
+  });
 
 
 
+  const handleParticipantsChange = (selectedIds: string[]) => {
+    console.log('Participants selected:', selectedIds);
+
+    setMissionData(prev => ({
+      ...prev,
+      participants: selectedIds
+    }));
+  };
+
+  useEffect(() => {
+    console.log('missionData.participants updated:', missionData.participants);
+  }, [missionData.participants]);
 
   const handleStartMission = async (id: string) => {
     const response = await startMission(id);
@@ -166,6 +242,21 @@ export const Missions = (): JSX.Element => {
     loadQuests();
   }, []);
 
+  useEffect(() => {
+    const getUsersData = async () => {
+      try {
+        const data = await fetchAllUsers();
+        setUsers(data.result);
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    getUsersData();
+  }, []);
+
 
   // Mission categories
   const [missionCategories] = useState<MissionCategory[]>([
@@ -177,30 +268,7 @@ export const Missions = (): JSX.Element => {
   ]);
 
   // Main mission data state with clean initial values
-  const [missionData, setMissionData] = useState<MissionData>({
-    title: "",
-    description: "",
-    banner: [], // Add this line
-    category: "Onboarding",
-    type: "Step by Step",
-    xpRewards: "",
-    coinsRewards: "",
-    unlockConditions: "No Requirements",
-    submissionDeadline: "1 Week",
-    startDate: "",
-    endDate: "",
-    visibility: "Public",
-    steps: [
-      {
-        id: 1,
-        title: "",
-        xpReward: "",
-        coinsReward: "",
-        description: "",
-        rewardType: "Screenshot Upload"
-      }
-    ]
-  });
+
   // API configuration
   const API_BASE_URL: string = import.meta.env.VITE_API_URL || 'https://your-api-endpoint.com';
   const API_ENDPOINTS = {
@@ -239,21 +307,21 @@ export const Missions = (): JSX.Element => {
       submissionDeadline: data.submissionDeadline,
       startDate: data.startDate,
       endDate: data.endDate,
-      visibility: data.visibility, // Remove .toLowerCase()
-      xpRewards: parseInt(data.xpRewards) || 0, // Flat structure
-      coinsRewards: parseInt(data.coinsRewards) || 0, // Flat structure
+      visibility: data.visibility,
+      xpRewards: parseInt(data.xpRewards) || 0,
+      coinsRewards: parseInt(data.coinsRewards) || 0,
+      participants: data.participants, // ✅ Added participants field
       steps: data.steps.map((step: MissionStep) => ({
         title: step.title.trim(),
         description: step.description.trim(),
         xpReward: parseInt(step.xpReward) || 0,
         coinsReward: parseInt(step.coinsReward) || 0,
-        isCompleted: false, // Add this
+        isCompleted: false,
         rewardType: step.rewardType,
-        proof: [] // Add this
+        proof: []
       }))
     };
   };
-
   // API call function
   const createMissionAPI = async (missionData: FormattedAPIData): Promise<APIResponse> => {
     try {
@@ -292,7 +360,11 @@ export const Missions = (): JSX.Element => {
     setIsLoading(true);
 
     try {
-      const apiData: FormattedAPIData = formatMissionDataForAPI(missionData);
+
+      const apiData: FormattedAPIData = {
+        ...formatMissionDataForAPI(missionData),
+        participants : missionData.participants.join(',')  // 👈 Converts to "id1,id2,id3"
+      };
       const response: APIResponse = await createMissionAPI(apiData);
 
       setSuccess(true);
@@ -358,24 +430,27 @@ export const Missions = (): JSX.Element => {
     setMissionData({
       title: "",
       description: "",
-      banner: [], // Add this line
+      banner: [],
       category: "Onboarding",
       type: "Step by Step",
       xpRewards: "",
       coinsRewards: "",
+      participants: [], // ✅ Changed from "" to []
       unlockConditions: "No Requirements",
       submissionDeadline: "1 Week",
       startDate: "",
       endDate: "",
       visibility: "Public",
-      steps: [{
-        id: Date.now(),
-        title: "",
-        xpReward: "",
-        coinsReward: "",
-        description: "",
-        rewardType: "Screenshot Upload"
-      }]
+      steps: [
+        {
+          id: 1,
+          title: "",
+          xpReward: "",
+          coinsReward: "",
+          description: "",
+          rewardType: "Screenshot Upload"
+        }
+      ]
     });
     setError(null);
     setSuccess(false);
@@ -449,8 +524,197 @@ export const Missions = (): JSX.Element => {
     setShowSubmitMissionModal(false);
     setSelectedMission(null);
   };
+
+
+
+  const DarkProfessionalMultiSelect: React.FC<MultiSelectProps> = ({
+    users,
+    selectedIds, // Now expects string[]
+    onChange,
+    placeholder = "Select participants...",
+    disabled = false
+  }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // ✅ Fixed to work with string[] instead of string
+    const selectedIdArray = selectedIds || [];
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+          setIsOpen(false);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleUserToggle = (userId: string) => {
+      let newSelectedIds: string[];
+
+      if (selectedIdArray.includes(userId)) {
+        newSelectedIds = selectedIdArray.filter(id => id !== userId);
+      } else {
+        newSelectedIds = [...selectedIdArray, userId];
+      }
+
+      onChange(newSelectedIds); // ✅ Pass array directly
+    };
+
+    const removeUser = (userId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      const newSelectedIds = selectedIdArray.filter(id => id !== userId);
+      onChange(newSelectedIds); // ✅ Pass array directly
+    };
+
+    const clearAll = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onChange([]); // ✅ Pass empty array
+    };
+
+    const getSelectedUsers = () => {
+      return users.filter((user: any) => selectedIdArray.includes(user.id));
+    };
+
+    return (
+      <div className="relative w-full" ref={dropdownRef}>
+        {/* Main Input Display */}
+        <div
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          className={`
+          min-h-[42px] w-full px-3 py-2 border border-[#333333] rounded-lg bg-[#1a1a1a]
+          cursor-pointer transition-all duration-200 hover:border-[#30bdee]
+          ${disabled ? 'bg-[#0a0a0a] cursor-not-allowed' : ''}
+          ${isOpen ? 'border-[#30bdee] bg-[#222222]' : ''}
+        `}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex-1 flex items-center flex-wrap gap-1">
+              {selectedIdArray.length === 0 ? (
+                <span className="text-[#ffffffb2]">{placeholder}</span>
+              ) : selectedIdArray.length === 1 ? (
+                <span className="text-white">{getSelectedUsers()[0]?.name}</span>
+              ) : (
+                <div className="flex flex-wrap gap-1">
+                  {getSelectedUsers().slice(0, 2).map((user: any) => (
+                    <span
+                      key={user.id}
+                      className="inline-flex items-center px-2 py-1 bg-[#30bdee]/20 text-[#30bdee] text-sm rounded-md"
+                    >
+                      {user.name}
+                      <button
+                        onClick={(e) => removeUser(user.id, e)}
+                        className="ml-1 text-[#30bdee] hover:text-white"
+                        type="button"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                  {selectedIdArray.length > 2 && (
+                    <span className="px-2 py-1 bg-[#333333] text-[#ffffffb2] text-sm rounded-md">
+                      +{selectedIdArray.length - 2} more
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 ml-2">
+              {selectedIdArray.length > 0 && !disabled && (
+                <button
+                  onClick={clearAll}
+                  className="text-[#ffffffb2] hover:text-white text-sm font-medium"
+                  type="button"
+                >
+                  Clear
+                </button>
+              )}
+              <svg
+                className={`w-4 h-4 text-[#ffffffb2] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Dropdown Menu */}
+        {isOpen && !disabled && (
+          <div className="absolute z-50 w-full mt-1 bg-[#1a1a1a] border border-[#333333] rounded-lg shadow-lg max-h-60 overflow-hidden">
+            {/* Header */}
+            <div className="px-3 py-2 bg-[#0a0a0a] border-b border-[#333333]">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-[#ffffffb2]">
+                  Select Participants ({selectedIdArray.length} selected)
+                </span>
+                {selectedIdArray.length > 0 && (
+                  <button
+                    onClick={(e) => clearAll(e)}
+                    className="text-xs text-[#30bdee] hover:text-white"
+                    type="button"
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Options List */}
+            <div className="max-h-48 overflow-y-auto">
+              {users.length === 0 ? (
+                <div className="px-3 py-4 text-center text-[#ffffffb2]">
+                  No users available
+                </div>
+              ) : (
+                users.map((user: any) => {
+                  const isSelected = selectedIdArray.includes(user.id);
+                  return (
+                    <div
+                      key={user.id}
+                      onClick={() => handleUserToggle(user.id)}
+                      className={`
+                      flex items-center px-3 py-2 cursor-pointer transition-colors
+                      hover:bg-[#333333] ${isSelected ? 'bg-[#30bdee]/10' : ''}
+                    `}
+                    >
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => { }} // Handled by parent div
+                          className="h-4 w-4 text-[#30bdee] focus:ring-[#30bdee] border-[#333333] rounded mr-3 bg-[#1a1a1a]"
+                        />
+                        <span className={`${isSelected ? 'font-medium text-[#30bdee]' : 'text-white'}`}>
+                          {user.name}
+                        </span>
+                      </div>
+                      {isSelected && (
+                        <svg className="w-4 h-4 text-[#30bdee] ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+
+
   // If Submit Mission modal is open, show it instead of the main content
-  if (showSubmitMissionModal && selectedMission) {
+  if (showSubmitMissionModal) {
     return (
       <div className="p-4 sm:p-6 lg:p-8 bg-[#0a0a0a] min-h-screen overflow-y-auto">
         {/* Header */}
@@ -470,7 +734,7 @@ export const Missions = (): JSX.Element => {
         <div className="max-w-4xl mx-auto space-y-6 lg:space-y-8">
           {/* Selected Mission Info */}
           <div className="bg-[#111111] border border-[#30bdee] rounded-2xl p-4 sm:p-6">
-            <div className="flex items-center gap-3 mb-4">
+            {/* <div className="flex items-center gap-3 mb-4">
               <div className={`w-12 h-12 bg-gradient-to-br ${selectedMission.color} rounded-xl flex items-center justify-center`}>
                 <span className="text-white text-xl">{selectedMission.icon}</span>
               </div>
@@ -486,7 +750,7 @@ export const Missions = (): JSX.Element => {
                   )}
                 </div>
               </div>
-            </div>
+            </div> */}
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 bg-green-600 text-white text-sm font-medium rounded-full">
                 Status
@@ -498,45 +762,7 @@ export const Missions = (): JSX.Element => {
           </div>
 
           {/* Available Missions Grid */}
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-white text-xl font-bold">Available Missions</h3>
-              <Button variant="ghost" className="text-[#30bdee] hover:text-white text-sm">
-                View all
-              </Button>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              {availableMissions.map((mission) => (
-                <div key={mission.id} className="bg-[#1a1a1a] border border-[#333333] rounded-xl overflow-hidden hover:border-[#30bdee] transition-all duration-300">
-                  {/* Mission Image */}
-                  <div className="aspect-square bg-[#2a2a2a] flex items-center justify-center relative">
-                    <div className={`w-16 h-16 bg-gradient-to-br ${mission.bgColor} rounded-2xl flex items-center justify-center shadow-lg`}>
-                      <span className="text-white text-2xl">{mission.image}</span>
-                    </div>
-                  </div>
-
-                  {/* Mission Content */}
-                  <div className="p-4">
-                    <h4 className="text-white font-bold text-sm mb-1">{mission.title}</h4>
-                    <p className="text-[#ffffffb2] text-xs mb-3">{mission.subtitle}</p>
-
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-yellow-400 font-bold text-sm">{mission.xp}</span>
-                      <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-[#30bdee] rounded-full" />
-                        <span className="text-white text-sm">{mission.coins}</span>
-                      </div>
-                    </div>
-
-                    <Button className="w-full bg-[#30bdee] hover:bg-[#2aa3d1] text-white rounded-lg text-sm">
-                      Start Mission
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* Upload Section */}
           <div className="bg-[#1a1a1a] border border-[#333333] rounded-2xl p-4 sm:p-6">
@@ -583,6 +809,8 @@ export const Missions = (): JSX.Element => {
 
   // If New Mission modal is open, show it instead of the main content
   if (showNewMissionModal) {
+
+
     return (
       <div className="p-4 sm:p-6 lg:p-8 bg-[#0a0a0a] min-h-screen overflow-y-auto">
         {/* Header */}
@@ -777,6 +1005,18 @@ export const Missions = (): JSX.Element => {
                   />
                   <div className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 sm:w-6 sm:h-6 bg-[#30bdee] rounded-full" />
                 </div>
+              </div>
+
+              <div>
+                <label className="text-[#ffffffb2] text-xs sm:text-sm block mb-3">
+                  Participants
+                </label>
+                <DarkProfessionalMultiSelect
+                  users={users}
+                  selectedIds={missionData.participants} // Now passes string[]
+                  onChange={handleParticipantsChange} // Now receives string[]
+                  placeholder="Choose participants..."
+                />
               </div>
             </div>
 
@@ -1127,6 +1367,12 @@ export const Missions = (): JSX.Element => {
       </div>
     );
   }
+
+
+
+
+
+
   // Main Missions Screen
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8 bg-[#0a0a0a] min-h-screen overflow-y-auto">
@@ -1280,7 +1526,7 @@ export const Missions = (): JSX.Element => {
                   {/* Missions List with Scroll */}
                   <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-track-[#111111] scrollbar-thumb-[#333333] hover:scrollbar-thumb-[#30bdee] pr-2">
                     <div className="space-y-2">
-                      {quests.map((mission) => (
+                      {quests.map((mission: any) => (
                         <div
                           key={mission.id}
                           className="lg:grid lg:grid-cols-5 lg:gap-2 p-3 bg-[#ffffff03] rounded-lg hover:bg-[#ffffff06] transition-colors lg:items-center"
@@ -1311,14 +1557,32 @@ export const Missions = (): JSX.Element => {
                                 </div>
                               </div>
                               <div className="flex gap-1 flex-shrink-0">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="text-[#ffffffb2] hover:text-white px-2 py-1 text-xs whitespace-nowrap"
-                                  onClick={() => { handleStartMission(mission.id) }}
-                                >
-                                  Start Mission
-                                </Button>
+                                <div className="flex gap-1 flex-shrink-0">
+                                  <div className="flex gap-1">
+                                    {mission?.UserQuest?.length === 0 ? (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="w-28 bg-blue-600 text-white text-sm font-medium rounded text-center justify-center"
+                                        onClick={() => handleStartMission(mission.id)}
+                                      >
+                                        <span className="truncate block w-full">Start</span>
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="w-28 bg-green-600 text-white text-sm font-medium rounded text-center justify-center"
+                                        onClick={() => setShowSubmitMissionModal(!showSubmitMissionModal)}
+                                      >
+                                        <span className="truncate block w-full">Submit</span>
+                                      </Button>
+                                    )}
+                                  </div>
+
+
+                                </div>
+
                               </div>
                             </div>
                           </div>
@@ -1346,16 +1610,27 @@ export const Missions = (): JSX.Element => {
                               </span>
                             </div>
                             <div className="flex gap-1">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-[#ffffffb2] hover:text-white px-2 py-1 text-xs whitespace-nowrap"
-                                onClick={() => { handleStartMission(mission.id) }}
-
-                              >
-                                Start Mission
-                              </Button>
+                              {mission?.UserQuest?.length === 0 ? (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="w-28 bg-blue-600 text-white text-sm font-medium rounded text-center justify-center"
+                                  onClick={() => handleStartMission(mission.id)}
+                                >
+                                  <span className="truncate block w-full">Start </span>
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="w-28 bg-green-600 text-white text-sm font-medium rounded text-center justify-center"
+                                  onClick={() => setShowSubmitMissionModal(!showSubmitMissionModal)}
+                                >
+                                  <span className="truncate block w-full">Submit</span>
+                                </Button>
+                              )}
                             </div>
+
                           </div>
                         </div>
                       ))}

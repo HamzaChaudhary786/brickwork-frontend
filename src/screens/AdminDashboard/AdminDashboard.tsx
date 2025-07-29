@@ -1,5 +1,5 @@
 import { UsersIcon, ShoppingBagIcon, TrendingUpIcon, DollarSignIcon, SearchIcon, FilterIcon, MoreHorizontalIcon, CheckIcon, XIcon, EyeIcon, PlusIcon, EditIcon, TrashIcon, InfoIcon } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -12,6 +12,9 @@ import {
   SelectValue,
 } from "../../components/ui/select";
 import { DeleteConfirmationModal } from "../../components/ui/delete-confirmation-modal";
+import { getPendingMissionRequest, PendingMission } from "../../apis/getMissionPendingRequest";
+import { approveMissionRequest } from "../../apis/approvedMissionRequest";
+import { rejectMissionRequest } from "../../apis/rejectMissionRequest";
 
 export const AdminDashboard = (): JSX.Element => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -43,6 +46,26 @@ export const AdminDashboard = (): JSX.Element => {
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
   const [selectedBadgeUsers, setSelectedBadgeUsers] = useState<string[]>([]);
 
+
+  const [missionsRequest, setMissionsRequest] = useState<PendingMission[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchMissions = async () => {
+      try {
+        const response = await getPendingMissionRequest();
+        setMissionsRequest(response.result);
+      } catch (err: any) {
+        setError(err.message || "Failed to load missions");
+      }
+    };
+
+    fetchMissions();
+  }, []);
+
+  console.log(missionsRequest, "this is my missionRequest");
+
+
   // Sample users data for participants and badges
   const sampleUsers = [
     { id: '1', name: 'SandGamer #5678', role: 'Member', avatar: 'SG' },
@@ -53,37 +76,37 @@ export const AdminDashboard = (): JSX.Element => {
   ];
 
   const stats = [
-    { 
-      title: "Total Users", 
-      value: "2,847", 
-      icon: UsersIcon, 
+    {
+      title: "Total Users",
+      value: "2,847",
+      icon: UsersIcon,
       color: "text-[#30bdee]",
       bgColor: "bg-[#30bdee]/10",
       change: "+12%",
       changeColor: "text-green-400"
     },
-    { 
-      title: "Total Sales", 
-      value: "$45,231", 
-      icon: DollarSignIcon, 
+    {
+      title: "Total Sales",
+      value: "$45,231",
+      icon: DollarSignIcon,
       color: "text-green-400",
       bgColor: "bg-green-400/10",
       change: "+8%",
       changeColor: "text-green-400"
     },
-    { 
-      title: "Orders", 
-      value: "1,234", 
-      icon: ShoppingBagIcon, 
+    {
+      title: "Orders",
+      value: "1,234",
+      icon: ShoppingBagIcon,
       color: "text-purple-400",
       bgColor: "bg-purple-400/10",
       change: "+15%",
       changeColor: "text-green-400"
     },
-    { 
-      title: "Revenue", 
-      value: "$12,847", 
-      icon: TrendingUpIcon, 
+    {
+      title: "Revenue",
+      value: "$12,847",
+      icon: TrendingUpIcon,
       color: "text-orange-400",
       bgColor: "bg-orange-400/10",
       change: "+5%",
@@ -312,9 +335,9 @@ export const AdminDashboard = (): JSX.Element => {
 
   const handleDeleteConfirm = async () => {
     if (!deleteItem) return;
-    
+
     setIsDeleting(true);
-    
+
     // Simulate delete operation
     setTimeout(() => {
       console.log(`Deleting ${deleteItem.type}: ${deleteItem.name} (ID: ${deleteItem.id})`);
@@ -352,7 +375,7 @@ export const AdminDashboard = (): JSX.Element => {
 
   const handleApproveConfirm = async () => {
     setIsApproving(true);
-    
+
     // Simulate approval process
     setTimeout(() => {
       console.log('Approving applicant:', selectedApplicant?.name || 'selected applicant');
@@ -365,7 +388,7 @@ export const AdminDashboard = (): JSX.Element => {
 
   const handleRejectConfirm = async () => {
     setIsRejecting(true);
-    
+
     // Simulate rejection process
     setTimeout(() => {
       console.log('Rejecting applicant:', selectedApplicant?.name || 'selected applicant');
@@ -378,7 +401,7 @@ export const AdminDashboard = (): JSX.Element => {
 
   const getDeleteModalContent = () => {
     if (!deleteItem) return { title: "", description: "" };
-    
+
     switch (deleteItem.type) {
       case "role":
         return {
@@ -405,6 +428,29 @@ export const AdminDashboard = (): JSX.Element => {
           title: "Delete Item",
           description: "Are you sure you want to delete this item? This action cannot be undone."
         };
+    }
+  };
+
+
+  const handleApprove = async (missionId: string) => {
+    const response = await approveMissionRequest(missionId);
+
+    if (response.success) {
+      console.log('Request approved successfully:', response.result);
+    } else {
+      console.error('Failed to approve request:', response.message);
+    }
+  };
+
+  const handleReject = async (missionId: string) => {
+    const response = await rejectMissionRequest(missionId);
+
+    if (response.success) {
+      console.log('Request rejected successfully:', response.result);
+      // Show success message or refresh list
+    } else {
+      console.error('Failed to reject request:', response.message);
+      // Show error message
     }
   };
 
@@ -471,73 +517,109 @@ export const AdminDashboard = (): JSX.Element => {
 
               {/* Table Rows */}
               <div className="space-y-2">
-                {missions.map((mission) => (
-                  <div key={mission.id} className="lg:grid lg:grid-cols-12 lg:gap-3 p-3 bg-[#ffffff03] rounded-lg hover:bg-[#ffffff06] transition-colors lg:items-center">
-                    {/* Mobile Card Layout */}
-                    <div className="lg:hidden space-y-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 bg-gradient-to-br ${mission.color} rounded-full flex items-center justify-center`}>
-                          <span className="text-white font-bold text-xs">{mission.avatar}</span>
+                {missionsRequest.map((mission: any) => {
+                  const avatar = mission.user.name?.charAt(0).toUpperCase() || "?";
+                  const color = "from-blue-500 to-cyan-500"; // or make dynamic per user
+                  const date = new Date().toLocaleDateString(); // Replace with actual date if available
+
+                  return (
+                    <div
+                      key={mission.id}
+                      className="lg:grid lg:grid-cols-12 lg:gap-3 p-3 bg-[#ffffff03] rounded-lg hover:bg-[#ffffff06] transition-colors lg:items-center"
+                    >
+                      {/* Mobile Layout */}
+                      <div className="lg:hidden space-y-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-8 h-8 bg-gradient-to-br ${color} rounded-full flex items-center justify-center`}
+                          >
+                            <span className="text-white font-bold text-xs">{avatar}</span>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-white font-medium text-sm">{mission.user.name}</span>
+                              <span className="text-[#ffffffb2] text-xs">{mission.user.id}</span>
+                            </div>
+                            <p className="text-[#ffffffb2] text-xs">{date}</p>
+                          </div>
                         </div>
                         <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-white font-medium text-sm">{mission.user}</span>
-                            <span className="text-[#ffffffb2] text-xs">{mission.userId}</span>
-                          </div>
-                          <p className="text-[#ffffffb2] text-xs">{mission.date}</p>
+                          <p className="text-white text-sm">{mission.quest.title}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="flex-1 text-red-400 hover:text-red-300 hover:bg-red-400/10 text-xs"
+                          >
+                            Reject
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="flex-1 bg-[#30bdee] hover:bg-[#2aa3d1] text-white text-xs"
+                          >
+                            Approve
+                          </Button>
                         </div>
                       </div>
-                      <div>
-                        <p className="text-white text-sm">{mission.mission}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="ghost" className="flex-1 text-red-400 hover:text-red-300 hover:bg-red-400/10 text-xs">
-                          Reject
-                        </Button>
-                        <Button size="sm" className="flex-1 bg-[#30bdee] hover:bg-[#2aa3d1] text-white text-xs">
-                          Approve
-                        </Button>
+
+                      {/* Desktop Grid Layout */}
+                      <div className="hidden lg:contents">
+                        {/* User */}
+                        <div className="col-span-3 flex items-center gap-2">
+                          <div
+                            className={`w-8 h-8 bg-gradient-to-br ${color} rounded-full flex items-center justify-center flex-shrink-0`}
+                          >
+                            <span className="text-white font-bold text-xs">{avatar}</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1">
+                              <span className="text-white text-sm font-medium truncate">
+                                {mission.user.name}
+                              </span>
+                              {/* <span className="text-[#ffffffb2] text-xs flex-shrink-0">
+                                {mission.user.id}
+                              </span> */}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Mission */}
+                        <div className="col-span-4 text-white text-sm pr-2">
+                          {mission.quest.title}
+                        </div>
+
+                        {/* Date */}
+                        <div className="col-span-2 text-[#ffffffb2] text-sm">{date}</div>
+
+                        {/* Actions */}
+                        <div className="col-span-3 flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+
+                            className="text-red-400 hover:text-red-300 hover:bg-red-400/10 px-2 py-1 rounded text-xs flex-1 min-w-0"
+                            onClick={() => {
+                              handleReject(mission.id)
+                            }}
+                          >
+                            Reject
+                          </Button>
+                          <Button
+                            size="sm"
+
+                            className="bg-[#30bdee] hover:bg-[#2aa3d1] text-white px-2 py-1 rounded text-xs flex-1 min-w-0"
+                            onClick={() => {
+                              handleApprove(mission.id)
+                            }}
+                          >
+                            Approve
+                          </Button>
+                        </div>
                       </div>
                     </div>
-
-                    {/* Desktop Grid Layout - Fixed spacing */}
-                    <div className="hidden lg:contents">
-                      {/* User - 3 columns */}
-                      <div className="col-span-3 flex items-center gap-2">
-                        <div className={`w-8 h-8 bg-gradient-to-br ${mission.color} rounded-full flex items-center justify-center flex-shrink-0`}>
-                          <span className="text-white font-bold text-xs">{mission.avatar}</span>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1">
-                            <span className="text-white text-sm font-medium truncate">{mission.user}</span>
-                            <span className="text-[#ffffffb2] text-xs flex-shrink-0">{mission.userId}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Mission - 4 columns */}
-                      <div className="col-span-4 text-white text-sm pr-2">{mission.mission}</div>
-
-                      {/* Date - 2 columns */}
-                      <div className="col-span-2 text-[#ffffffb2] text-sm">{mission.date}</div>
-
-                      {/* Actions - 3 columns */}
-                      <div className="col-span-3 flex gap-1">
-                        <Button onClick={() => handleRejectClick(mission)}
-                          size="sm" 
-                          variant="ghost" 
-                          className="text-red-400 hover:text-red-300 hover:bg-red-400/10 px-2 py-1 rounded text-xs flex-1 min-w-0">
-                          Reject
-                        </Button>
-                        <Button onClick={() => handleApproveClick(mission)}
-                          size="sm" 
-                          className="bg-[#30bdee] hover:bg-[#2aa3d1] text-white px-2 py-1 rounded text-xs flex-1 min-w-0">
-                          Approve
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* View All Button */}
@@ -668,7 +750,7 @@ export const AdminDashboard = (): JSX.Element => {
                       Reject
                     </Button>
                     <Button onClick={() => handleApproveClick(application)}
-                      size="sm" 
+                      size="sm"
                       className="bg-[#30bdee] hover:bg-[#2aa3d1] text-white px-4 py-2 rounded-lg">
                       Approve
                     </Button>
@@ -914,11 +996,11 @@ export const AdminDashboard = (): JSX.Element => {
       {showPlayerInfoModal && selectedPlayer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
-          <div 
+          <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={handleClosePlayerInfo}
           />
-          
+
           {/* Modal */}
           <div className="relative bg-[#111111] w-full max-w-md rounded-2xl border border-[#333333] p-6 max-h-[90vh] overflow-y-auto">
             {/* Header */}
@@ -1028,11 +1110,11 @@ export const AdminDashboard = (): JSX.Element => {
       {/* Add Role Reward Modal */}
       {showAddRoleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div 
+          <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setShowAddRoleModal(false)}
           />
-          
+
           <div className="relative bg-[#111111] w-full max-w-md rounded-2xl border border-[#333333] p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-white text-xl font-bold">Add Role Reward</h3>
@@ -1048,7 +1130,7 @@ export const AdminDashboard = (): JSX.Element => {
             <div className="space-y-4">
               <div>
                 <label className="text-[#ffffffb2] text-sm block mb-2">Select Discord Role</label>
-                <Select value={newRole.discordRole} onValueChange={(value) => setNewRole({...newRole, discordRole: value})}>
+                <Select value={newRole.discordRole} onValueChange={(value) => setNewRole({ ...newRole, discordRole: value })}>
                   <SelectTrigger className="bg-[#0a0a0a] border-[#333333] text-white">
                     <SelectValue />
                   </SelectTrigger>
@@ -1063,7 +1145,7 @@ export const AdminDashboard = (): JSX.Element => {
 
               <div>
                 <label className="text-[#ffffffb2] text-sm block mb-2">Set Interval</label>
-                <Select value={newRole.interval} onValueChange={(value) => setNewRole({...newRole, interval: value})}>
+                <Select value={newRole.interval} onValueChange={(value) => setNewRole({ ...newRole, interval: value })}>
                   <SelectTrigger className="bg-[#0a0a0a] border-[#333333] text-white">
                     <SelectValue />
                   </SelectTrigger>
@@ -1080,7 +1162,7 @@ export const AdminDashboard = (): JSX.Element => {
                   <label className="text-[#ffffffb2] text-sm block mb-2">XP Reward</label>
                   <Input
                     value={newRole.xpReward}
-                    onChange={(e) => setNewRole({...newRole, xpReward: e.target.value})}
+                    onChange={(e) => setNewRole({ ...newRole, xpReward: e.target.value })}
                     className="bg-[#0a0a0a] border-[#333333] text-white"
                     placeholder="+25"
                   />
@@ -1091,7 +1173,7 @@ export const AdminDashboard = (): JSX.Element => {
                     <div className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 bg-yellow-400 rounded-full" />
                     <Input
                       value={newRole.coinsReward}
-                      onChange={(e) => setNewRole({...newRole, coinsReward: e.target.value})}
+                      onChange={(e) => setNewRole({ ...newRole, coinsReward: e.target.value })}
                       className="bg-[#0a0a0a] border-[#333333] text-white pl-10"
                       placeholder="00"
                     />
@@ -1101,9 +1183,9 @@ export const AdminDashboard = (): JSX.Element => {
 
               <div className="flex items-center justify-between">
                 <label className="text-[#ffffffb2] text-sm">Enable Status</label>
-                <div 
+                <div
                   className={`w-12 h-6 rounded-full cursor-pointer transition-colors ${newRole.enableStatus ? 'bg-[#30bdee]' : 'bg-gray-600'}`}
-                  onClick={() => setNewRole({...newRole, enableStatus: !newRole.enableStatus})}
+                  onClick={() => setNewRole({ ...newRole, enableStatus: !newRole.enableStatus })}
                 >
                   <div className={`w-6 h-6 bg-white rounded-full transition-transform ${newRole.enableStatus ? 'translate-x-6' : 'translate-x-0'}`} />
                 </div>
@@ -1135,11 +1217,11 @@ export const AdminDashboard = (): JSX.Element => {
       {/* Add Participants Modal */}
       {showAddParticipantsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div 
+          <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setShowAddParticipantsModal(false)}
           />
-          
+
           <div className="relative bg-[#111111] w-full max-w-md rounded-2xl border border-[#333333] p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-white text-xl font-bold">Add Participants</h3>
@@ -1169,7 +1251,7 @@ export const AdminDashboard = (): JSX.Element => {
 
               <div>
                 <label className="text-[#ffffffb2] text-sm block mb-2">Select Participants</label>
-                
+
                 <div className="relative mb-3">
                   <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#ffffffb2]" />
                   <Input
@@ -1261,11 +1343,11 @@ export const AdminDashboard = (): JSX.Element => {
       {/* Add Badges Modal */}
       {showAddBadgesModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div 
+          <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setShowAddBadgesModal(false)}
           />
-          
+
           <div className="relative bg-[#111111] w-full max-w-md rounded-2xl border border-[#333333] p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-white text-xl font-bold">Add Badges</h3>
@@ -1321,7 +1403,7 @@ export const AdminDashboard = (): JSX.Element => {
 
               <div>
                 <label className="text-[#ffffffb2] text-sm block mb-2">Select Players</label>
-                
+
                 <div className="relative mb-3">
                   <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#ffffffb2]" />
                   <Input

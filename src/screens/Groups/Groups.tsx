@@ -708,9 +708,9 @@ export const Groups = (): JSX.Element => {
     };
   };
   const API_BASE_URL: string = import.meta.env.VITE_API_URL || 'https://your-api-endpoint.com';
-  const API_ENDPOINTS = {
-    CREATE_MISSION: '/quests',
-  } as const;
+  // const API_ENDPOINTS = {
+  //   CREATE_MISSION: '/quests',
+  // } as const;
 
   // API call function
   const updateMissionAPI = async (missionData: FormattedAPIData): Promise<APIResponse> => {
@@ -1571,7 +1571,7 @@ export const Groups = (): JSX.Element => {
                                   {Array.isArray(role.permissions) && role.permissions.length > 0
                                     ? role.permissions
                                       .map((permission: Permission) => permission?.name ?? '')
-                                      .filter(name => name)
+                                      .filter((name: any) => name)
                                       .join(', ')
                                     : 'No permissions'}
                                 </p>
@@ -1604,7 +1604,7 @@ export const Groups = (): JSX.Element => {
                                 {Array.isArray(role.permissions) && role.permissions.length > 0
                                   ? role.permissions
                                     .map((permission: Permission) => permission?.name ?? '')
-                                    .filter(name => name)
+                                    .filter((name: any) => name)
                                     .join(', ')
                                   : 'No permissions'}
                               </p>
