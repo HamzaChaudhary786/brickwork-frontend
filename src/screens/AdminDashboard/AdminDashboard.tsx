@@ -1,97 +1,22 @@
-import { UsersIcon, ShoppingBagIcon, TrendingUpIcon, DollarSignIcon, SearchIcon, FilterIcon, MoreHorizontalIcon, CheckIcon, XIcon, EyeIcon, PlusIcon, EditIcon, TrashIcon, InfoIcon, Plus, Edit, Trash2 } from "lucide-react";
+import { UsersIcon, ShoppingBagIcon, TrendingUpIcon, DollarSignIcon, SearchIcon, FilterIcon, MoreHorizontalIcon, CheckIcon, XIcon, EyeIcon, PlusIcon, EditIcon, TrashIcon, InfoIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import { ApproveModal, RejectModal } from "../../components/ui/approve-reject-modals";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
 import { DeleteConfirmationModal } from "../../components/ui/delete-confirmation-modal";
-import { useAbility } from "../../casl/AbilityContext";
-import { fetchAllUsers } from "../../apis/getAllUsers";
-import { addRole } from "../../apis/addRoles";
-import { assignRole } from "../../apis/assignRole";
-import { getAllRoles } from "../../apis/getAllRoles";
-import { Role } from ".";
-import { deleteRole } from "../../apis/deleteRole";
-
-
-interface Props {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-type User = {
-  id: string;
-  name: string;
-  username: string;
-  email: string;
-  emailVerified: boolean;
-  image: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
-interface RoleFormData {
-  name: string;
-  description: string;
-  discordRoleId: string;
-  color: number;
-  level: number;
-  isActive: boolean; // ✅ Add this
-
-}
-
+import { getPendingMissionRequest, PendingMission } from "../../apis/getMissionPendingRequest";
+import { approveMissionRequest } from "../../apis/approvedMissionRequest";
+import { rejectMissionRequest } from "../../apis/rejectMissionRequest";
 
 export const AdminDashboard = (): JSX.Element => {
-  const ability = useAbility();
-  const [users, setUsers] = useState<User[]>([]); // ✅
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [showAllRoles, setShowAllRoles] = useState<boolean>(false);
-  const [deletingRoleId, setDeletingRoleId] = useState<string | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
-  const [roleToDelete, setRoleToDelete] = useState<{ id: string; name: string } | null>(null);
-
-  const [isAssign, setIsAssign] = useState<boolean>(false);
-  const [formData, setFormData] = useState<RoleFormData>({
-    name: '',
-    description: '',
-    discordRoleId: '',
-    color: 0,
-    level: 0,
-    isActive: false
-  });
-
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [editRoles, setEditRoles] = useState<Role[]>([]);
-
-  const [loading, setLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    const fetchRoles = async () => {
-      try {
-        const allRoles = await getAllRoles();
-        setRoles(allRoles);
-      } catch (err) {
-        console.error("Failed to load roles:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRoles();
-  }, []);
-
-
-  useEffect(() => {
-    const getUsersData = async () => {
-      let data = await fetchAllUsers()
-      setUsers(data.result)
-    }
-    getUsersData()
-  }, [])
-
-
-  console.log(users, "my all users");
-
-
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteItem, setDeleteItem] = useState<{
     type: string;
@@ -101,7 +26,55 @@ export const AdminDashboard = (): JSX.Element => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showPlayerInfoModal, setShowPlayerInfoModal] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
-  const [userId, setUserId] = useState<string | null>(null)
+  const [showAddRoleModal, setShowAddRoleModal] = useState(false);
+  const [showAddParticipantsModal, setShowAddParticipantsModal] = useState(false);
+  const [showAddBadgesModal, setShowAddBadgesModal] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [selectedApplicant, setSelectedApplicant] = useState<any>(null);
+  const [newRole, setNewRole] = useState({
+    discordRole: 'Mission Reviewers',
+    interval: 'Daily',
+    xpReward: '+25',
+    coinsReward: '00',
+    enableStatus: true
+  });
+  const [selectedMission, setSelectedMission] = useState('Join Your First Group');
+  const [selectedBadge, setSelectedBadge] = useState('Welcome Aboard');
+  const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
+  const [selectedBadgeUsers, setSelectedBadgeUsers] = useState<string[]>([]);
+
+
+  const [missionsRequest, setMissionsRequest] = useState<PendingMission[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchMissions = async () => {
+      try {
+        const response = await getPendingMissionRequest();
+        setMissionsRequest(response.result);
+      } catch (err: any) {
+        setError(err.message || "Failed to load missions");
+      }
+    };
+
+    fetchMissions();
+  }, []);
+
+  console.log(missionsRequest, "this is my missionRequest");
+
+
+  // Sample users data for participants and badges
+  const sampleUsers = [
+    { id: '1', name: 'SandGamer #5678', role: 'Member', avatar: 'SG' },
+    { id: '2', name: 'AlliGamer1234', role: 'Subscriber', avatar: 'AG' },
+    { id: '3', name: 'PixelArtist#3456', role: 'Mission Reviewer', avatar: 'PA' },
+    { id: '4', name: 'CodeNinja#9012', role: 'Event Organizer', avatar: 'CN' },
+    { id: '5', name: 'Johny #5678', role: 'Streamer', avatar: 'JH' }
+  ];
+
   const stats = [
     {
       title: "Total Users",
@@ -390,6 +363,42 @@ export const AdminDashboard = (): JSX.Element => {
     setSelectedPlayer(null);
   };
 
+  const handleApproveClick = (applicant?: any) => {
+    setSelectedApplicant(applicant);
+    setShowApproveModal(true);
+  };
+
+  const handleRejectClick = (applicant?: any) => {
+    setSelectedApplicant(applicant);
+    setShowRejectModal(true);
+  };
+
+  const handleApproveConfirm = async () => {
+    setIsApproving(true);
+
+    // Simulate approval process
+    setTimeout(() => {
+      console.log('Approving applicant:', selectedApplicant?.name || 'selected applicant');
+      setIsApproving(false);
+      setShowApproveModal(false);
+      setSelectedApplicant(null);
+      // Here you would typically update the application status in your data
+    }, 2000);
+  };
+
+  const handleRejectConfirm = async () => {
+    setIsRejecting(true);
+
+    // Simulate rejection process
+    setTimeout(() => {
+      console.log('Rejecting applicant:', selectedApplicant?.name || 'selected applicant');
+      setIsRejecting(false);
+      setShowRejectModal(false);
+      setSelectedApplicant(null);
+      // Here you would typically update the application status in your data
+    }, 2000);
+  };
+
   const getDeleteModalContent = () => {
     if (!deleteItem) return { title: "", description: "" };
 
@@ -423,96 +432,27 @@ export const AdminDashboard = (): JSX.Element => {
   };
 
 
-  if (!ability.can('manage', 'all')) {
-    return <div className="flex items-center justify-center h-screen text-white font-bold text-xl"
-    >Admin access only</div>;
-  }
+  const handleApprove = async (missionId: string) => {
+    const response = await approveMissionRequest(missionId);
 
-
-  // const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-  //   const { name, value, type } = e.target;
-  //   setFormData((prev) => ({
-  //     ...prev,
-  //     [name]: type === 'number' ? Number(value) : value,
-  //   }));
-  // };
-
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'color' || name === 'level' ? Number(value) : value,
-    }));
-  };
-  const handleSubmit = async () => {
-    let res;
-    if (isAssign) {
-      if (!userId) {
-        // Optionally show an error or return early
-        console.error("User ID is required for assigning role.");
-        return;
-      }
-      res = await assignRole(userId, formData);
+    if (response.success) {
+      console.log('Request approved successfully:', response.result);
     } else {
-      res = await addRole(formData);
+      console.error('Failed to approve request:', response.message);
     }
+  };
 
-    if (res.success) {
-      setIsOpen(false);
+  const handleReject = async (missionId: string) => {
+    const response = await rejectMissionRequest(missionId);
+
+    if (response.success) {
+      console.log('Request rejected successfully:', response.result);
+      // Show success message or refresh list
     } else {
-      // Handle error
+      console.error('Failed to reject request:', response.message);
+      // Show error message
     }
   };
-
-
-  const handleDelete = async (id: string) => {
-    // const confirmed = window.confirm("Are you sure you want to delete this role?");
-    // if (!confirmed) return;
-
-    const success = await deleteRole(id);
-    if (success) {
-      setRoles(prev => prev.filter(role => role.id !== id));
-    } else {
-      alert("Failed to delete role");
-    }
-  };
-
-  const formatDate = (dateString: any) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-
-  const handleConfirmDelete = async (roleId: string, roleName: string) => {
-    setDeletingRoleId(roleId);
-
-    try {
-      const success = await deleteRole(roleId);
-
-      if (success) {
-        // Remove the deleted role from the local state
-        setRoles(prevRoles => prevRoles.filter(role => role.id !== roleId));
-
-        // Show success message (you can use toast or console)
-        console.log(`Role "${roleName}" deleted successfully`);
-        // toast.success(`Role "${roleName}" deleted successfully`);
-      } else {
-        // Show error message
-        console.error(`Failed to delete role "${roleName}"`);
-        // toast.error(`Failed to delete role "${roleName}"`);
-      }
-    } catch (error) {
-      console.error('Delete error:', error);
-      // toast.error(`Error deleting role "${roleName}"`);
-    } finally {
-      setDeletingRoleId(null);
-    }
-  };
-
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8 bg-[#0a0a0a] min-h-screen">
@@ -555,389 +495,6 @@ export const AdminDashboard = (): JSX.Element => {
         ))}
       </div>
 
-      <div>
-        <Card className="bg-[#111111] border-[#333333]">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-white font-['Rajdhani',Helvetica] font-bold text-xl">
-                Users
-              </CardTitle>
-              {/* <Button
-                className="bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 px-4 py-2 rounded-lg text-sm"
-                onClick={() => {
-                  setIsAssign(false);
-                  setIsOpen(true);
-                }}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Role
-              </Button> */}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {/* Table Header - Desktop */}
-            <div className="hidden lg:grid grid-cols-12 gap-2 p-3 bg-[#ffffff06] rounded-lg mb-4 text-[#ffffffb2] text-sm font-medium">
-              <div className="col-span-3">User</div>
-              <div className="col-span-2">Username</div>
-              <div className="col-span-3">Email</div>
-              <div className="col-span-2">Created</div>
-              <div className="col-span-1">Verified</div>
-              <div className="col-span-1">Actions</div>
-            </div>
-
-            {/* Table Rows */}
-            <div className="space-y-2">
-              {users?.map((user: any) => (
-                <div key={user.id} className="lg:grid lg:grid-cols-12 lg:gap-2 p-3 bg-[#ffffff03] rounded-lg hover:bg-[#ffffff06] transition-colors lg:items-center">
-                  {/* Mobile Layout */}
-                  <div className="lg:hidden space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={user.image}
-                          alt={user.name}
-                          className="w-8 h-8 rounded-full"
-                        />
-                        <div>
-                          <div className="text-white text-sm font-medium">{user.name}</div>
-                          <div className="text-[#ffffffb2] text-xs">@{user.username}</div>
-                        </div>
-                      </div>
-                      <div className={`w-2 h-2 rounded-full ${user.emailVerified ? 'bg-green-500' : 'bg-red-500'}`} />
-                    </div>
-                    <div className="text-[#ffffffb2] text-xs">
-                      <div>{user.email}</div>
-                      <div className="mt-1">Joined {formatDate(user.createdAt)}</div>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-1">
-                        <Edit className="w-3 h-3" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-1"
-                        onClick={() => {
-                          setIsAssign(true);
-                          setIsOpen(true);
-                          setUserId(user._id)
-                        }}>
-                        Assign Role
-                      </Button>
-                      <Button
-                        onClick={() => handleDeleteClick("user", user.name, user.id)}
-                        size="sm"
-                        variant="ghost"
-                        className="text-[#ffffffb2] hover:text-red-400 p-1"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Desktop Layout */}
-                  <div className="hidden lg:contents">
-                    <div className="col-span-3 flex items-center gap-3">
-                      <img
-                        src={user.image}
-                        alt={user.name}
-                        className="w-8 h-8 rounded-full flex-shrink-0"
-                      />
-                      <div className="min-w-0">
-                        <div className="text-white text-sm font-medium truncate">{user.name}</div>
-                        <div className="text-[#ffffffb2] text-xs truncate">ID: {user.id.slice(0, 8)}...</div>
-                      </div>
-                    </div>
-                    <div className="col-span-2 text-[#ffffffb2] text-sm">@{user.username}</div>
-                    <div className="col-span-3 text-[#ffffffb2] text-sm truncate">{user.email}</div>
-                    <div className="col-span-2 text-[#ffffffb2] text-sm">{formatDate(user.createdAt)}</div>
-                    <div className="col-span-1">
-                      <div className={`w-2 h-2 rounded-full ${user.emailVerified ? 'bg-green-500' : 'bg-red-500'}`} />
-                    </div>
-                    <div className="col-span-1 flex gap-1">
-                      <Button size="sm" variant="ghost" className="text-[#ffffffb2] hover:text-white p-1">
-                        <Edit className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        onClick={() => handleDeleteClick("user", user.name, user.id)}
-                        size="sm"
-                        variant="ghost"
-                        className="text-[#ffffffb2] hover:text-red-400 p-1"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* View All Button */}
-            <div className="mt-4 text-center">
-              <Button variant="ghost" className="text-[#30bdee] text-sm">
-                View All Users
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div>
-        <Card className="bg-[#111111] border-[#333333]">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-white font-['Rajdhani',Helvetica] font-bold text-xl">
-                Roles
-              </CardTitle>
-              <Button
-                className="bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 px-4 py-2 rounded-lg text-sm"
-                onClick={() => {
-                  setIsAssign(false);
-                  setIsOpen(true);
-                }}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Role
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {/* Table Header - Desktop */}
-            <div className="hidden lg:grid grid-cols-12 gap-2 p-3 bg-[#ffffff06] rounded-lg mb-4 text-[#ffffffb2] text-sm font-medium">
-              <div className="col-span-3">Role Name</div>
-              <div className="col-span-3">Description</div>
-              <div className="col-span-2">Level</div>
-              <div className="col-span-2">Created</div>
-              <div className="col-span-1">Status</div>
-              <div className="col-span-1">Actions</div>
-            </div>
-
-            {/* Table Rows */}
-            <div className="space-y-2">
-              {(showAllRoles ? roles : roles?.slice(0, 10))?.map((role: any) => (
-                <div key={role.id} className="lg:grid lg:grid-cols-12 lg:gap-2 p-3 bg-[#ffffff03] rounded-lg hover:bg-[#ffffff06] transition-colors lg:items-center">
-                  {/* Mobile Layout */}
-                  <div className="lg:hidden space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                          style={{ backgroundColor: role.color ? `#${role.color.toString(16).padStart(6, '0')}` : '#666666' }}
-                        >
-                          {role.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="text-white text-sm font-medium">{role.name}</div>
-                          <div className="text-[#ffffffb2] text-xs">Level {role.level}</div>
-                        </div>
-                      </div>
-                      <div className={`w-2 h-2 rounded-full ${role.isActive ? 'bg-green-500' : 'bg-red-500'}`} />
-                    </div>
-                    <div className="text-[#ffffffb2] text-xs">
-                      <div>{role.description}</div>
-                      <div className="mt-1">Created {formatDate(role.createdAt)}</div>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-[#ffffffb2] hover:text-white p-1"
-                        onClick={() => {
-                          setIsAssign(true);
-                          setIsOpen(true);
-                          // setRoleId(role.id);
-                        }}
-                      >
-                        <Edit className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          handleConfirmDelete(role.id, role.name);
-                        }}
-                        size="sm"
-                        variant="ghost"
-                        className="text-[#ffffffb2] hover:text-red-400 p-1"
-                        disabled={deletingRoleId === role.id}
-                      >
-                        {deletingRoleId === role.id ? (
-                          <div className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <Trash2 className="w-3 h-3" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Desktop Layout */}
-                  <div className="hidden lg:contents">
-                    <div className="col-span-3 flex items-center gap-3">
-                      <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                        style={{ backgroundColor: role.color ? `#${role.color.toString(16).padStart(6, '0')}` : '#666666' }}
-                      >
-                        {role.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-white text-sm font-medium truncate">{role.name}</div>
-                        <div className="text-[#ffffffb2] text-xs truncate">ID: {role.id.slice(0, 8)}...</div>
-                      </div>
-                    </div>
-                    <div className="col-span-3 text-[#ffffffb2] text-sm truncate">{role.description}</div>
-                    <div className="col-span-2 text-[#ffffffb2] text-sm">Level {role.level}</div>
-                    <div className="col-span-2 text-[#ffffffb2] text-sm">{formatDate(role.createdAt)}</div>
-                    <div className="col-span-1">
-                      <div className={`w-2 h-2 rounded-full ${role.isActive ? 'bg-green-500' : 'bg-red-500'}`} />
-                    </div>
-                    <div className="col-span-1 flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-[#ffffffb2] hover:text-white p-1"
-                        onClick={() => {
-                          setIsAssign(true);
-                          setIsOpen(true);
-                          setUserId(role.id)
-                          setFormData({
-                            name: role.name,
-                            description: role.description,
-                            level: role.level,
-                            discordRoleId:  '', 
-                            color:  0, 
-                            isActive: role.isActive || true 
-                          })
-                          // setRoleId(role.id);
-                        }}
-                      >
-                        <Edit className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          handleConfirmDelete(role.id, role.name);
-                        }}
-                        size="sm"
-                        variant="ghost"
-                        className="text-[#ffffffb2] hover:text-red-400 p-1"
-                        disabled={deletingRoleId === role.id}
-                      >
-                        {deletingRoleId === role.id ? (
-                          <div className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <Trash2 className="w-3 h-3" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* View All Button */}
-            <div className="mt-4 text-center">
-              <Button
-                variant="ghost"
-                className="text-[#30bdee] text-sm"
-                onClick={() => setShowAllRoles(!showAllRoles)}
-              >
-                {showAllRoles ? 'Show Less' : `View All Roles ${roles?.length > 10 ? `(${roles.length})` : ''}`}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div>
-        {
-          isOpen && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50">
-              <div className="
-        rounded-2xl shadow-2xl p-6 w-full max-w-md transition-all duration-300 transform
-        bg-white dark:bg-gray-900 
-        border border-gray-200 dark:border-gray-700 
-        shadow-black/10 dark:shadow-black/50
-      ">
-                <h2 className="
-          text-xl font-bold mb-6
-          text-gray-900 dark:text-white
-        ">
-                  {isAssign ? "Assign Role" : "Add New Role"}
-                </h2>
-
-                <div className="space-y-4">
-                  <input
-                    name="name"
-                    placeholder="Name"
-                    className="
-              w-full border rounded-xl p-3 transition-all duration-200
-              focus:ring-2 focus:ring-[#00cfff]/20 focus:border-[#00cfff] outline-none
-              bg-white dark:bg-gray-800 
-              border-gray-300 dark:border-gray-600 
-              text-gray-900 dark:text-white 
-              placeholder-gray-500 dark:placeholder-gray-400
-            "
-                    value={formData.name}
-                    onChange={handleChange}
-                  />
-                  <textarea
-                    name="description"
-                    placeholder="Description"
-                    className="
-              w-full border rounded-xl p-3 transition-all duration-200 resize-none
-              focus:ring-2 focus:ring-[#00cfff]/20 focus:border-[#00cfff] outline-none
-              bg-white dark:bg-gray-800 
-              border-gray-300 dark:border-gray-600 
-              text-gray-900 dark:text-white 
-              placeholder-gray-500 dark:placeholder-gray-400
-            "
-                    value={formData.description}
-                    onChange={handleChange}
-                  />
-                  <input
-                    name="level"
-                    type="number"
-                    placeholder="Level"
-                    className="
-              w-full border rounded-xl p-3 transition-all duration-200
-              focus:ring-2 focus:ring-[#00cfff]/20 focus:border-[#00cfff] outline-none
-              bg-white dark:bg-gray-800 
-              border-gray-300 dark:border-gray-600 
-              text-gray-900 dark:text-white 
-              placeholder-gray-500 dark:placeholder-gray-400
-            "
-                    value={formData.level}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div className="flex justify-end mt-6 space-x-3">
-                  <button
-                    className="
-              px-6 py-2.5 rounded-xl font-medium transition-all duration-200
-              bg-gray-100 dark:bg-gray-700 
-              text-gray-700 dark:text-gray-200 
-              hover:bg-gray-200 dark:hover:bg-gray-600 
-              border border-gray-300 dark:border-gray-600
-            "
-                    onClick={() => {
-                      setIsOpen(!isOpen)
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="
-              px-6 py-2.5 rounded-xl font-medium transition-all duration-200
-              bg-gradient-to-r from-[#00cfff] to-[#0099cc] text-white
-              hover:from-[#00b8e6] hover:to-[#0088bb]
-              shadow-lg shadow-[#00cfff]/25 hover:shadow-[#00cfff]/35
-            "
-                    onClick={handleSubmit}
-                  >
-                    {isAssign ? "Assign Role" : "Add Role"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )
-        }
-      </div>
-
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
         {/* Left Column */}
@@ -960,68 +517,109 @@ export const AdminDashboard = (): JSX.Element => {
 
               {/* Table Rows */}
               <div className="space-y-2">
-                {missions.map((mission) => (
-                  <div key={mission.id} className="lg:grid lg:grid-cols-12 lg:gap-3 p-3 bg-[#ffffff03] rounded-lg hover:bg-[#ffffff06] transition-colors lg:items-center">
-                    {/* Mobile Card Layout */}
-                    <div className="lg:hidden space-y-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 bg-gradient-to-br ${mission.color} rounded-full flex items-center justify-center`}>
-                          <span className="text-white font-bold text-xs">{mission.avatar}</span>
+                {missionsRequest.map((mission: any) => {
+                  const avatar = mission.user.name?.charAt(0).toUpperCase() || "?";
+                  const color = "from-blue-500 to-cyan-500"; // or make dynamic per user
+                  const date = new Date().toLocaleDateString(); // Replace with actual date if available
+
+                  return (
+                    <div
+                      key={mission.id}
+                      className="lg:grid lg:grid-cols-12 lg:gap-3 p-3 bg-[#ffffff03] rounded-lg hover:bg-[#ffffff06] transition-colors lg:items-center"
+                    >
+                      {/* Mobile Layout */}
+                      <div className="lg:hidden space-y-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-8 h-8 bg-gradient-to-br ${color} rounded-full flex items-center justify-center`}
+                          >
+                            <span className="text-white font-bold text-xs">{avatar}</span>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-white font-medium text-sm">{mission.user.name}</span>
+                              <span className="text-[#ffffffb2] text-xs">{mission.user.id}</span>
+                            </div>
+                            <p className="text-[#ffffffb2] text-xs">{date}</p>
+                          </div>
                         </div>
                         <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-white font-medium text-sm">{mission.user}</span>
-                            <span className="text-[#ffffffb2] text-xs">{mission.userId}</span>
-                          </div>
-                          <p className="text-[#ffffffb2] text-xs">{mission.date}</p>
+                          <p className="text-white text-sm">{mission.quest.title}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="flex-1 text-red-400 hover:text-red-300 hover:bg-red-400/10 text-xs"
+                          >
+                            Reject
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="flex-1 bg-[#30bdee] hover:bg-[#2aa3d1] text-white text-xs"
+                          >
+                            Approve
+                          </Button>
                         </div>
                       </div>
-                      <div>
-                        <p className="text-white text-sm">{mission.mission}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="ghost" className="flex-1 text-red-400 hover:text-red-300 hover:bg-red-400/10 text-xs">
-                          Reject
-                        </Button>
-                        <Button size="sm" className="flex-1 bg-[#30bdee] hover:bg-[#2aa3d1] text-white text-xs">
-                          Approve
-                        </Button>
+
+                      {/* Desktop Grid Layout */}
+                      <div className="hidden lg:contents">
+                        {/* User */}
+                        <div className="col-span-3 flex items-center gap-2">
+                          <div
+                            className={`w-8 h-8 bg-gradient-to-br ${color} rounded-full flex items-center justify-center flex-shrink-0`}
+                          >
+                            <span className="text-white font-bold text-xs">{avatar}</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1">
+                              <span className="text-white text-sm font-medium truncate">
+                                {mission.user.name}
+                              </span>
+                              {/* <span className="text-[#ffffffb2] text-xs flex-shrink-0">
+                                {mission.user.id}
+                              </span> */}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Mission */}
+                        <div className="col-span-4 text-white text-sm pr-2">
+                          {mission.quest.title}
+                        </div>
+
+                        {/* Date */}
+                        <div className="col-span-2 text-[#ffffffb2] text-sm">{date}</div>
+
+                        {/* Actions */}
+                        <div className="col-span-3 flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+
+                            className="text-red-400 hover:text-red-300 hover:bg-red-400/10 px-2 py-1 rounded text-xs flex-1 min-w-0"
+                            onClick={() => {
+                              handleReject(mission.id)
+                            }}
+                          >
+                            Reject
+                          </Button>
+                          <Button
+                            size="sm"
+
+                            className="bg-[#30bdee] hover:bg-[#2aa3d1] text-white px-2 py-1 rounded text-xs flex-1 min-w-0"
+                            onClick={() => {
+                              handleApprove(mission.id)
+                            }}
+                          >
+                            Approve
+                          </Button>
+                        </div>
                       </div>
                     </div>
-
-                    {/* Desktop Grid Layout - Fixed spacing */}
-                    <div className="hidden lg:contents">
-                      {/* User - 3 columns */}
-                      <div className="col-span-3 flex items-center gap-2">
-                        <div className={`w-8 h-8 bg-gradient-to-br ${mission.color} rounded-full flex items-center justify-center flex-shrink-0`}>
-                          <span className="text-white font-bold text-xs">{mission.avatar}</span>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1">
-                            <span className="text-white text-sm font-medium truncate">{mission.user}</span>
-                            <span className="text-[#ffffffb2] text-xs flex-shrink-0">{mission.userId}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Mission - 4 columns */}
-                      <div className="col-span-4 text-white text-sm pr-2">{mission.mission}</div>
-
-                      {/* Date - 2 columns */}
-                      <div className="col-span-2 text-[#ffffffb2] text-sm">{mission.date}</div>
-
-                      {/* Actions - 3 columns */}
-                      <div className="col-span-3 flex gap-1">
-                        <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-400/10 px-2 py-1 rounded text-xs flex-1 min-w-0">
-                          Reject
-                        </Button>
-                        <Button size="sm" className="bg-[#30bdee] hover:bg-[#2aa3d1] text-white px-2 py-1 rounded text-xs flex-1 min-w-0">
-                          Approve
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* View All Button */}
@@ -1042,7 +640,7 @@ export const AdminDashboard = (): JSX.Element => {
                 </CardTitle>
                 <Button className="bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 px-4 py-2 rounded-lg text-sm">
                   <PlusIcon className="w-4 h-4 mr-2" />
-                  Add Participants
+                  <span onClick={() => setShowAddParticipantsModal(true)}>Add Participants</span>
                 </Button>
               </div>
             </CardHeader>
@@ -1144,14 +742,16 @@ export const AdminDashboard = (): JSX.Element => {
                   <p className="text-[#ffffffb2] text-sm mb-4 leading-relaxed">{application.message}</p>
                   <div className="flex gap-3">
                     <Button
-                      onClick={() => handleDeleteClick("application", application.user, application.id)}
+                      onClick={() => handleRejectClick(application)}
                       size="sm"
                       variant="ghost"
                       className="text-red-400 hover:text-red-300 hover:bg-red-400/10 px-4 py-2 rounded-lg"
                     >
                       Reject
                     </Button>
-                    <Button size="sm" className="bg-[#30bdee] hover:bg-[#2aa3d1] text-white px-4 py-2 rounded-lg">
+                    <Button onClick={() => handleApproveClick(application)}
+                      size="sm"
+                      className="bg-[#30bdee] hover:bg-[#2aa3d1] text-white px-4 py-2 rounded-lg">
                       Approve
                     </Button>
                   </div>
@@ -1179,7 +779,7 @@ export const AdminDashboard = (): JSX.Element => {
                 </CardTitle>
                 <Button className="bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 px-4 py-2 rounded-lg text-sm">
                   <PlusIcon className="w-4 h-4 mr-2" />
-                  Add Role Reward
+                  <span onClick={() => setShowAddRoleModal(true)}>Add Role Reward</span>
                 </Button>
               </div>
             </CardHeader>
@@ -1278,7 +878,7 @@ export const AdminDashboard = (): JSX.Element => {
                 </CardTitle>
                 <Button className="bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 px-4 py-2 rounded-lg text-sm">
                   <PlusIcon className="w-4 h-4 mr-2" />
-                  Add Badges
+                  <span onClick={() => setShowAddBadgesModal(true)}>Add Badges</span>
                 </Button>
               </div>
             </CardHeader>
@@ -1505,6 +1105,409 @@ export const AdminDashboard = (): JSX.Element => {
         description={getDeleteModalContent().description}
         itemName={deleteItem?.name}
         isLoading={isDeleting}
+      />
+
+      {/* Add Role Reward Modal */}
+      {showAddRoleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowAddRoleModal(false)}
+          />
+
+          <div className="relative bg-[#111111] w-full max-w-md rounded-2xl border border-[#333333] p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-white text-xl font-bold">Add Role Reward</h3>
+              <Button
+                variant="ghost"
+                onClick={() => setShowAddRoleModal(false)}
+                className="text-[#ffffffb2] hover:text-white p-2"
+              >
+                <XIcon className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-[#ffffffb2] text-sm block mb-2">Select Discord Role</label>
+                <Select value={newRole.discordRole} onValueChange={(value) => setNewRole({ ...newRole, discordRole: value })}>
+                  <SelectTrigger className="bg-[#0a0a0a] border-[#333333] text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#111111] border-[#333333]">
+                    <SelectItem value="Mission Reviewers" className="text-white hover:bg-[#333333]">Mission Reviewers</SelectItem>
+                    <SelectItem value="Event Organizer" className="text-white hover:bg-[#333333]">Event Organizer</SelectItem>
+                    <SelectItem value="Moderator" className="text-white hover:bg-[#333333]">Moderator</SelectItem>
+                    <SelectItem value="VIP" className="text-white hover:bg-[#333333]">VIP</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-[#ffffffb2] text-sm block mb-2">Set Interval</label>
+                <Select value={newRole.interval} onValueChange={(value) => setNewRole({ ...newRole, interval: value })}>
+                  <SelectTrigger className="bg-[#0a0a0a] border-[#333333] text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#111111] border-[#333333]">
+                    <SelectItem value="Daily" className="text-white hover:bg-[#333333]">Daily</SelectItem>
+                    <SelectItem value="Weekly" className="text-white hover:bg-[#333333]">Weekly</SelectItem>
+                    <SelectItem value="Monthly" className="text-white hover:bg-[#333333]">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[#ffffffb2] text-sm block mb-2">XP Reward</label>
+                  <Input
+                    value={newRole.xpReward}
+                    onChange={(e) => setNewRole({ ...newRole, xpReward: e.target.value })}
+                    className="bg-[#0a0a0a] border-[#333333] text-white"
+                    placeholder="+25"
+                  />
+                </div>
+                <div>
+                  <label className="text-[#ffffffb2] text-sm block mb-2">Coins Reward</label>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 bg-yellow-400 rounded-full" />
+                    <Input
+                      value={newRole.coinsReward}
+                      onChange={(e) => setNewRole({ ...newRole, coinsReward: e.target.value })}
+                      className="bg-[#0a0a0a] border-[#333333] text-white pl-10"
+                      placeholder="00"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <label className="text-[#ffffffb2] text-sm">Enable Status</label>
+                <div
+                  className={`w-12 h-6 rounded-full cursor-pointer transition-colors ${newRole.enableStatus ? 'bg-[#30bdee]' : 'bg-gray-600'}`}
+                  onClick={() => setNewRole({ ...newRole, enableStatus: !newRole.enableStatus })}
+                >
+                  <div className={`w-6 h-6 bg-white rounded-full transition-transform ${newRole.enableStatus ? 'translate-x-6' : 'translate-x-0'}`} />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                onClick={() => setShowAddRoleModal(false)}
+                variant="outline"
+                className="flex-1 border-[#333333] text-[#ffffffb2] hover:text-white hover:bg-[#ffffff12]"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  console.log('Adding role:', newRole);
+                  setShowAddRoleModal(false);
+                }}
+                className="flex-1 bg-[#30bdee] hover:bg-[#2aa3d1] text-white"
+              >
+                Add Role
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Participants Modal */}
+      {showAddParticipantsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowAddParticipantsModal(false)}
+          />
+
+          <div className="relative bg-[#111111] w-full max-w-md rounded-2xl border border-[#333333] p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-white text-xl font-bold">Add Participants</h3>
+              <Button
+                variant="ghost"
+                onClick={() => setShowAddParticipantsModal(false)}
+                className="text-[#ffffffb2] hover:text-white p-2"
+              >
+                <XIcon className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-[#ffffffb2] text-sm block mb-2">Select Mission</label>
+                <Select value={selectedMission} onValueChange={setSelectedMission}>
+                  <SelectTrigger className="bg-[#0a0a0a] border-[#333333] text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#111111] border-[#333333]">
+                    <SelectItem value="Join Your First Group" className="text-white hover:bg-[#333333]">Join Your First Group</SelectItem>
+                    <SelectItem value="Complete Daily Login" className="text-white hover:bg-[#333333]">Complete Daily Login</SelectItem>
+                    <SelectItem value="Submit Bug Report" className="text-white hover:bg-[#333333]">Submit Bug Report</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-[#ffffffb2] text-sm block mb-2">Select Participants</label>
+
+                <div className="relative mb-3">
+                  <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#ffffffb2]" />
+                  <Input
+                    placeholder="Search"
+                    className="bg-[#0a0a0a] border-[#333333] text-white pl-10"
+                  />
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <Select defaultValue="role">
+                      <SelectTrigger className="bg-transparent border-none text-[#ffffffb2] text-sm w-20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#111111] border-[#333333]">
+                        <SelectItem value="role" className="text-white">By Role</SelectItem>
+                        <SelectItem value="name" className="text-white">By Name</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex justify-between mb-3">
+                  <Button
+                    variant="ghost"
+                    className="text-[#30bdee] hover:text-white text-sm"
+                    onClick={() => setSelectedParticipants(sampleUsers.map(u => u.id))}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="text-[#ffffffb2] hover:text-white text-sm"
+                    onClick={() => setSelectedParticipants([])}
+                  >
+                    Clear All
+                  </Button>
+                </div>
+
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {sampleUsers.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between p-2 bg-[#ffffff06] rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedParticipants.includes(user.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedParticipants([...selectedParticipants, user.id]);
+                            } else {
+                              setSelectedParticipants(selectedParticipants.filter(id => id !== user.id));
+                            }
+                          }}
+                          className="text-[#30bdee]"
+                        />
+                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold text-xs">{user.avatar}</span>
+                        </div>
+                        <div>
+                          <p className="text-white text-sm font-medium">{user.name}</p>
+                        </div>
+                      </div>
+                      <span className="text-[#ffffffb2] text-xs">{user.role}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                onClick={() => setShowAddParticipantsModal(false)}
+                variant="outline"
+                className="flex-1 border-[#333333] text-[#ffffffb2] hover:text-white hover:bg-[#ffffff12]"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  console.log('Adding participants:', selectedParticipants, 'to mission:', selectedMission);
+                  setShowAddParticipantsModal(false);
+                }}
+                className="flex-1 bg-[#30bdee] hover:bg-[#2aa3d1] text-white"
+              >
+                Mark Completed
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Badges Modal */}
+      {showAddBadgesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowAddBadgesModal(false)}
+          />
+
+          <div className="relative bg-[#111111] w-full max-w-md rounded-2xl border border-[#333333] p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-white text-xl font-bold">Add Badges</h3>
+              <Button
+                variant="ghost"
+                onClick={() => setShowAddBadgesModal(false)}
+                className="text-[#ffffffb2] hover:text-white p-2"
+              >
+                <XIcon className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-[#ffffffb2] text-sm block mb-2">Select Badges</label>
+                <Select value={selectedBadge} onValueChange={setSelectedBadge}>
+                  <SelectTrigger className="bg-[#0a0a0a] border-[#333333] text-white">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs">✓</span>
+                      </div>
+                      <SelectValue />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#111111] border-[#333333]">
+                    <SelectItem value="Welcome Aboard" className="text-white hover:bg-[#333333]">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs">✓</span>
+                        </div>
+                        Welcome Aboard
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Social Butterfly" className="text-white hover:bg-[#333333]">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs">🦋</span>
+                        </div>
+                        Social Butterfly
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Event Champion" className="text-white hover:bg-[#333333]">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs">🏆</span>
+                        </div>
+                        Event Champion
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-[#ffffffb2] text-sm block mb-2">Select Players</label>
+
+                <div className="relative mb-3">
+                  <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#ffffffb2]" />
+                  <Input
+                    placeholder="Search User"
+                    className="bg-[#0a0a0a] border-[#333333] text-white pl-10"
+                  />
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <Select defaultValue="role">
+                      <SelectTrigger className="bg-transparent border-none text-[#ffffffb2] text-sm w-20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#111111] border-[#333333]">
+                        <SelectItem value="role" className="text-white">By Role</SelectItem>
+                        <SelectItem value="name" className="text-white">By Name</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex justify-between mb-3">
+                  <Button
+                    variant="ghost"
+                    className="text-[#30bdee] hover:text-white text-sm"
+                    onClick={() => setSelectedBadgeUsers(sampleUsers.map(u => u.id))}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="text-[#ffffffb2] hover:text-white text-sm"
+                    onClick={() => setSelectedBadgeUsers([])}
+                  >
+                    Clear All
+                  </Button>
+                </div>
+
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {sampleUsers.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between p-2 bg-[#ffffff06] rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedBadgeUsers.includes(user.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedBadgeUsers([...selectedBadgeUsers, user.id]);
+                            } else {
+                              setSelectedBadgeUsers(selectedBadgeUsers.filter(id => id !== user.id));
+                            }
+                          }}
+                          className="text-[#30bdee]"
+                        />
+                        <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold text-xs">{user.avatar}</span>
+                        </div>
+                        <div>
+                          <p className="text-white text-sm font-medium">{user.name}</p>
+                        </div>
+                      </div>
+                      <span className="text-[#ffffffb2] text-xs">{user.role}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                onClick={() => setShowAddBadgesModal(false)}
+                variant="outline"
+                className="flex-1 border-[#333333] text-[#ffffffb2] hover:text-white hover:bg-[#ffffff12]"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  console.log('Assigning badge:', selectedBadge, 'to users:', selectedBadgeUsers);
+                  setShowAddBadgesModal(false);
+                }}
+                className="flex-1 bg-[#30bdee] hover:bg-[#2aa3d1] text-white"
+              >
+                Assign Badge
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approve Modal */}
+      <ApproveModal
+        isOpen={showApproveModal}
+        onClose={() => setShowApproveModal(false)}
+        onConfirm={handleApproveConfirm}
+        applicantName={selectedApplicant?.name || "selected applicants"}
+        isLoading={isApproving}
+      />
+
+      {/* Reject Modal */}
+      <RejectModal
+        isOpen={showRejectModal}
+        onClose={() => setShowRejectModal(false)}
+        onConfirm={handleRejectConfirm}
+        applicantName={selectedApplicant?.name || "selected applicants"}
+        isLoading={isRejecting}
       />
     </div>
   );

@@ -1,11 +1,175 @@
-import { TrendingUpIcon, UsersIcon, ShoppingBagIcon, StarIcon, ZapIcon, TrophyIcon, CoinsIcon, TargetIcon, ArrowUpIcon, PlayIcon, WalletIcon, DollarSignIcon } from "lucide-react";
+import { TrendingUpIcon, UsersIcon, ShoppingBagIcon, StarIcon, ZapIcon, TrophyIcon, CoinsIcon, TargetIcon, ArrowUpIcon, PlayIcon, WalletIcon, DollarSignIcon, LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { DashboardProps } from ".";
 import { useAbility } from '../../casl/AbilityContext';
+import { useEffect, useState } from "react";
+import { fetchUserMissions } from "../../apis/getMissionUser";
+
+
+
+interface Quest {
+  id: string;
+  title: string;
+  description: string;
+  banner: object;
+  category: string;
+  type: string;
+  unlockConditions: string;
+  submissionDeadline: string;
+  startDate: string;
+  endDate: string;
+  visibility: string;
+  xpRewards: number;
+  coinsRewards: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface UserQuestStep {
+  id: string;
+  userQuestId: string;
+  questStepId: string;
+  xpReward: number;
+  coinsReward: number;
+  isCompleted: boolean;
+  proof: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface UserMission {
+  id: string;
+  userId: string;
+  questId: string;
+  isCompleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+  xpRewards: number;
+  coinsRewards: number;
+  quest: Quest;
+  UserQuestSteps: UserQuestStep[];
+}
+
+interface ApiResponse {
+  success: boolean;
+  message: string;
+  result: UserMission[];
+  statusCode: number;
+}
+
+interface TransformedMission {
+  id: string;
+  title: string;
+  description: string;
+  reward: string;
+  progress: number;
+  status: 'completed' | 'in-progress';
+  icon: LucideIcon;
+  color: string;
+  category: string;
+  xpRewards: number;
+  startDate: string;
+  endDate: string;
+  steps: UserQuestStep[];
+}
+
+interface CategoryConfig {
+  icon: LucideIcon;
+  color: string;
+}
+
+
 
 export const Dashboard = ({ user }: DashboardProps): JSX.Element => {
   const ability = useAbility();
+
+
+
+
+  const [userMissions, setUserMissions] = useState<UserMission[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
+
+  useEffect(() => {
+    const loadMissions = async (): Promise<void> => {
+      try {
+        const data: ApiResponse = await fetchUserMissions();
+        // Extract the result array from your API response
+        setUserMissions(data.result || data);
+      } catch (err: any) {
+        setError(err.message || 'Something went wrong');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMissions();
+  }, []);
+
+  // Transform your data to match the component's expected format
+  const transformedMissions: TransformedMission[] = userMissions.map((userMission: UserMission): TransformedMission => {
+    const quest = userMission.quest;
+    const totalSteps = userMission.UserQuestSteps?.length || 1;
+    const completedSteps = userMission.UserQuestSteps?.filter((step: UserQuestStep) => step.isCompleted).length || 0;
+    const progress = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+
+    // Map category to icon and color (you can customize these)
+    const getCategoryConfig = (category: string): CategoryConfig => {
+      const configs: Record<string, CategoryConfig> = {
+        'Social': { icon: TargetIcon, color: 'bg-blue-500' },
+        'Gaming': { icon: TargetIcon, color: 'bg-purple-500' },
+        'Learning': { icon: TargetIcon, color: 'bg-green-500' },
+        'Creative': { icon: TargetIcon, color: 'bg-orange-500' },
+        'Default': { icon: TargetIcon, color: 'bg-gray-500' }
+      };
+      return configs[category] || configs['Default'];
+    };
+
+    const categoryConfig = getCategoryConfig(quest.category);
+
+    return {
+      id: userMission.id,
+      title: quest.title,
+      description: quest.description,
+      reward: `${quest.coinsRewards || 0}`,
+      progress: progress,
+      status: userMission.isCompleted ? 'completed' : 'in-progress',
+      icon: categoryConfig.icon,
+      color: categoryConfig.color,
+      category: quest.category,
+      xpRewards: quest.xpRewards,
+      startDate: quest.startDate,
+      endDate: quest.endDate,
+      steps: userMission.UserQuestSteps
+    };
+  });
+
+  if (loading) {
+    return (
+      <div className="bg-gradient-to-r from-[#1a1a1a] to-[#2a2a2a] dark:from-[#1a1a1a] dark:to-[#2a2a2a] light:from-white light:to-gray-50 border border-[#333333] dark:border-[#333333] light:border-gray-200 rounded-2xl p-4 sm:p-6 transition-colors duration-300">
+        <div className="flex items-center justify-center py-8">
+          <div className="text-[#ffffffb2] dark:text-[#ffffffb2] light:text-gray-600">
+            Loading missions...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-gradient-to-r from-[#1a1a1a] to-[#2a2a2a] dark:from-[#1a1a1a] dark:to-[#2a2a2a] light:from-white light:to-gray-50 border border-[#333333] dark:border-[#333333] light:border-gray-200 rounded-2xl p-4 sm:p-6 transition-colors duration-300">
+        <div className="flex items-center justify-center py-8">
+          <div className="text-red-400 text-center">
+            <p>Failed to load missions</p>
+            <p className="text-sm mt-1">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const stats = [
     {
@@ -113,6 +277,8 @@ export const Dashboard = ({ user }: DashboardProps): JSX.Element => {
       </div>
     );
   }
+
+
 
 
   return (
@@ -267,48 +433,76 @@ export const Dashboard = ({ user }: DashboardProps): JSX.Element => {
               View all
             </Button>
           </div>
+
           <div className="space-y-3 sm:space-y-4">
-            {missions.map((mission, index) => (
-              <div key={index} className="p-3 sm:p-4 bg-[#ffffff06] dark:bg-[#ffffff06] light:bg-gray-100 rounded-xl hover:bg-[#ffffff08] dark:hover:bg-[#ffffff08] light:hover:bg-gray-200 transition-colors">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className={`w-6 h-6 sm:w-8 sm:h-8 ${mission.color}/20 rounded-lg flex items-center justify-center`}>
-                      <mission.icon className={`w-3 h-3 sm:w-4 sm:h-4 ${mission.color.replace('bg-', 'text-')}`} />
-                    </div>
-                    <p className="text-white dark:text-white light:text-gray-900 font-semibold text-sm sm:text-base transition-colors duration-300">{mission.title}</p>
-                  </div>
-                  <div className="flex items-center gap-1 sm:gap-2">
-                    <CoinsIcon className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" />
-                    <span className="text-yellow-400 text-xs sm:text-sm font-bold">{mission.reward}</span>
-                  </div>
-                </div>
-
-                <div className="relative mb-2">
-                  <div className="w-full bg-[#ffffff12] dark:bg-[#ffffff12] light:bg-gray-300 rounded-full h-2 sm:h-3 transition-colors duration-300">
-                    <div
-                      className={`${mission.color} h-2 sm:h-3 rounded-full transition-all duration-500 shadow-sm`}
-                      style={{ width: `${mission.progress}%` }}
-                    />
-                  </div>
-                  {mission.status === 'completed' && (
-                    <div className="absolute right-2 top-0 bottom-0 flex items-center">
-                      <StarIcon className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400 fill-current" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <p className="text-[#ffffffb2] dark:text-[#ffffffb2] light:text-gray-600 text-xs sm:text-sm transition-colors duration-300">{mission.progress}% complete</p>
-                  {mission.status === 'completed' ? (
-                    <span className="text-green-400 text-xs sm:text-sm font-semibold">✓ Completed</span>
-                  ) : (
-                    <span className="text-[#30bdee] text-xs sm:text-sm font-semibold">In Progress</span>
-                  )}
-                </div>
+            {transformedMissions.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-[#ffffffb2] dark:text-[#ffffffb2] light:text-gray-600">
+                  No active missions found
+                </p>
               </div>
-            ))}
+            ) : (
+              transformedMissions.map((mission: TransformedMission, index: number) => (
+                <div key={mission.id} className="p-3 sm:p-4 bg-[#ffffff06] dark:bg-[#ffffff06] light:bg-gray-100 rounded-xl hover:bg-[#ffffff08] dark:hover:bg-[#ffffff08] light:hover:bg-gray-200 transition-colors">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className={`w-6 h-6 sm:w-8 sm:h-8 ${mission.color}/20 rounded-lg flex items-center justify-center`}>
+                        <mission.icon className={`w-3 h-3 sm:w-4 sm:h-4 ${mission.color.replace('bg-', 'text-')}`} />
+                      </div>
+                      <div>
+                        <p className="text-white dark:text-white light:text-gray-900 font-semibold text-sm sm:text-base transition-colors duration-300">
+                          {mission.title}
+                        </p>
+                        <p className="text-[#ffffffb2] dark:text-[#ffffffb2] light:text-gray-500 text-xs">
+                          {mission.category}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 sm:gap-2">
+                      <CoinsIcon className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" />
+                      <span className="text-yellow-400 text-xs sm:text-sm font-bold">{mission.reward}</span>
+                    </div>
+                  </div>
+
+                  <div className="relative mb-2">
+                    <div className="w-full bg-[#ffffff12] dark:bg-[#ffffff12] light:bg-gray-300 rounded-full h-2 sm:h-3 transition-colors duration-300">
+                      <div
+                        className={`${mission.color} h-2 sm:h-3 rounded-full transition-all duration-500 shadow-sm`}
+                        style={{ width: `${mission.progress}%` }}
+                      />
+                    </div>
+                    {mission.status === 'completed' && (
+                      <div className="absolute right-2 top-0 bottom-0 flex items-center">
+                        <StarIcon className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400 fill-current" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <p className="text-[#ffffffb2] dark:text-[#ffffffb2] light:text-gray-600 text-xs sm:text-sm transition-colors duration-300">
+                      {mission.progress}% complete
+                    </p>
+                    {mission.status === 'completed' ? (
+                      <span className="text-green-400 text-xs sm:text-sm font-semibold">✓ Completed</span>
+                    ) : (
+                      <span className="text-[#30bdee] text-xs sm:text-sm font-semibold">In Progress</span>
+                    )}
+                  </div>
+
+                  {/* Optional: Show step details */}
+                  {mission.steps && mission.steps.length > 1 && (
+                    <div className="mt-2 pt-2 border-t border-[#ffffff12]">
+                      <p className="text-[#ffffffb2] text-xs">
+                        {mission.steps.filter((step: UserQuestStep) => step.isCompleted).length} of {mission.steps.length} steps completed
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+
             <Link to="/missions">
-              <Button className="w-full bg-gradient-to-r from-[#30bdee] to-[#65cbff] hover:from-[#2aa3d1] hover:to-[#5bb8f0] text-white rounded-xl font-semibold shadow-lg shadow-[#30bdee]/25 transition-all duration-200 hover:scale-105">
+              <Button className="w-full mt-10 bg-gradient-to-r from-[#30bdee] to-[#65cbff] hover:from-[#2aa3d1] hover:to-[#5bb8f0] text-white rounded-xl font-semibold shadow-lg shadow-[#30bdee]/25 transition-all duration-200 hover:scale-105">
                 <TargetIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 View All Missions
               </Button>

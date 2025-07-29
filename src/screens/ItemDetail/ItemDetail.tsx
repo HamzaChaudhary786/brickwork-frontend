@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
+import { PurchaseConfirmationModal } from "../../components/ui/purchase-confirmation-modal";
 
 export const ItemDetail = (): JSX.Element => {
   const { id } = useParams();
@@ -10,6 +11,8 @@ export const ItemDetail = (): JSX.Element => {
   const [quantity, setQuantity] = useState(1);
   const [isFavorited, setIsFavorited] = useState(false);
   const [activeTab, setActiveTab] = useState("description");
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false);
 
   // Get item data from navigation state or use fallback data
   const itemData = location.state?.itemData;
@@ -29,7 +32,7 @@ export const ItemDetail = (): JSX.Element => {
     seller: "Wade warren",
     reviewDate: "Oct 07 2024",
     reviewText: "The Armored Knight stands tall as the ultimate tank unit - built for glory and war. Love the product 🔥 Impeccable craftsmanship and sheer strength make this warrior a battlefield icon ⚔️",
-    image: "⚔️",
+    image: "/public/News&Updatesimages/12 copy.png",
     bgColor: "from-gray-600 to-gray-700"
   };
 
@@ -50,7 +53,7 @@ export const ItemDetail = (): JSX.Element => {
       price: 16.00, 
       coins: 156, 
       rating: 4,
-      image: "🥷"
+      image: "/public/News&Updatesimages/12 copy.png"
     },
     { 
       id: 3,
@@ -58,7 +61,7 @@ export const ItemDetail = (): JSX.Element => {
       price: 14.00, 
       coins: 140, 
       rating: 3,
-      image: "🖤",
+      image: "/public/News&Updatesimages/12 copy.png",
       isNew: true
     },
   ];
@@ -70,7 +73,7 @@ export const ItemDetail = (): JSX.Element => {
       price: 16.00, 
       coins: 156, 
       rating: 4,
-      image: "⚡"
+      image: "/public/News&Updatesimages/12 copy.png"
     },
     { 
       id: 5,
@@ -78,7 +81,7 @@ export const ItemDetail = (): JSX.Element => {
       price: 12.00, 
       coins: 134, 
       rating: 4,
-      image: "🛡️"
+      image: "/public/News&Updatesimages/12 copy.png"
     },
   ];
 
@@ -104,7 +107,29 @@ export const ItemDetail = (): JSX.Element => {
     }
   };
 
+  const handleBuyNow = () => {
+    setShowPurchaseModal(true);
+  };
+
+  const handleConfirmPurchase = async () => {
+    setIsPurchasing(true);
+    
+    // Simulate purchase process
+    setTimeout(() => {
+      console.log('Purchase confirmed for:', item.name);
+      setIsPurchasing(false);
+      setShowPurchaseModal(false);
+      // Here you would typically handle the actual purchase logic
+    }, 2000);
+  };
+
+  const handleClosePurchaseModal = () => {
+    if (isPurchasing) return; // Prevent closing while processing
+    setShowPurchaseModal(false);
+  };
+
   return (
+    <>
     <div className="bg-[#0a0a0a] min-h-screen">
       {/* Header with Breadcrumb */}
       <div className="bg-[#111111] border-b border-[#333333] px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
@@ -123,29 +148,36 @@ export const ItemDetail = (): JSX.Element => {
           <div className="xl:col-span-2 space-y-4 sm:space-y-6">
             {/* Large Item Image */}
             <Card className="bg-[#111111] border-[#333333] overflow-hidden">
-              <CardContent className="p-0">
-                <div className="aspect-square bg-gradient-to-br from-[#1a1a1a] to-[#0f0f0f] flex items-center justify-center relative group">
+             <CardContent className="p-0 flex justify-center">
+                <div
+                  className="
+                    w-full max-w-[500px]     
+                    h-[580px]                
+                    bg-[#1a1a1a]             
+                    rounded-2xl
+                    flex items-center justify-center
+                    relative group
+                    overflow-hidden
+                  "
+                >
                   {/* 3D Item Display */}
-                  <div className={`w-48 h-48 sm:w-64 sm:h-64 lg:w-80 lg:h-80 bg-gradient-to-br ${item.bgColor} rounded-2xl sm:rounded-3xl flex items-center justify-center shadow-2xl transform group-hover:scale-105 transition-all duration-500 relative`}>
-                    <span className="text-white text-4xl sm:text-6xl lg:text-8xl drop-shadow-2xl">{item.image}</span>
-                    
-                    {/* Magical Glow Effect */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-2xl sm:rounded-3xl animate-pulse" />
-                    <div className="absolute -inset-2 sm:-inset-4 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-2xl sm:rounded-3xl blur-xl" />
-                  </div>
-
-                  {/* Favorite Button */}
-                  <Button
-                    variant="ghost"
-                    onClick={() => setIsFavorited(!isFavorited)}
-                    className={`absolute top-4 sm:top-6 right-4 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 p-0 rounded-full backdrop-blur-sm transition-all duration-300 ${
-                      isFavorited 
-                        ? 'bg-[#30bdee] hover:bg-[#2aa3d1] text-white' 
-                        : 'bg-[#000000]/40 hover:bg-[#30bdee] text-white'
-                    }`}
+                  <div
+                    className={`
+                       w-full max-w-[500px]            
+                      h-[480px]
+                      bg-gradient-to-br
+                      rounded-2xl
+                      flex items-center justify-center
+                      shadow-2xl
+                      transform group-hover:scale-105 transition-all duration-500
+                    `}
                   >
-                    <HeartIcon className={`w-5 h-5 sm:w-6 sm:h-6 ${isFavorited ? 'fill-current' : ''}`} />
-                  </Button>
+                    <img
+                      src={item.image.replace("/public", "")}
+                      alt={item.name}
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -154,8 +186,12 @@ export const ItemDetail = (): JSX.Element => {
             <div className="flex gap-2 sm:gap-3">
               {[1, 2, 3, 4].map((index) => (
                 <div key={index} className="w-16 h-16 sm:w-20 sm:h-20 bg-[#111111] border border-[#333333] rounded-xl flex items-center justify-center cursor-pointer hover:border-[#30bdee] transition-colors">
-                  <div className={`w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br ${item.bgColor} rounded-lg flex items-center justify-center`}>
-                    <span className="text-white text-base sm:text-xl">{item.image}</span>
+                  <div className={`w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br  rounded-lg flex items-center justify-center`}>
+                  <img
+                    src={item.image.replace('/public','')}
+                    alt={item.name}
+                    className="max-w-full max-h-full object-contain"
+                  /> 
                   </div>
                 </div>
               ))}
@@ -318,7 +354,10 @@ export const ItemDetail = (): JSX.Element => {
               </div>
 
               {/* Buy Now Button */}
-              <Button className="w-full bg-[#30bdee] hover:bg-[#2aa3d1] text-white h-10 sm:h-12 text-base sm:text-lg font-semibold rounded-lg">
+              <Button 
+                onClick={handleBuyNow}
+                className="w-full bg-[#30bdee] hover:bg-[#2aa3d1] text-white h-10 sm:h-12 text-base sm:text-lg font-semibold rounded-lg"
+              >
                 Buy Now
               </Button>
             </div>
@@ -348,7 +387,11 @@ export const ItemDetail = (): JSX.Element => {
                         </div>
                       )}
                       <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#333333] rounded-lg flex items-center justify-center">
-                        <span className="text-lg sm:text-2xl">{product.image}</span>
+                      <img
+                        src={item.image.replace("/public", "")}
+                        alt={item.name}
+                        className="max-w-full max-h-full object-contain"
+                      />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-white font-medium text-xs sm:text-sm mb-1 truncate">{product.name}</h4>
@@ -391,7 +434,11 @@ export const ItemDetail = (): JSX.Element => {
                   <Link key={index} to={`/item/${product.id}`} className="block">
                     <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-[#ffffff06] rounded-lg hover:bg-[#ffffff08] transition-colors cursor-pointer">
                       <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#333333] rounded-lg flex items-center justify-center">
-                        <span className="text-lg sm:text-2xl">{product.image}</span>
+                      <img
+                        src={item.image.replace("/public", "")}
+                        alt={item.name}
+                        className="max-w-full max-h-full object-contain"
+                      />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-white font-medium text-xs sm:text-sm mb-1 truncate">{product.name}</h4>
@@ -420,5 +467,15 @@ export const ItemDetail = (): JSX.Element => {
         </div>
       </div>
     </div>
+
+      {/* Purchase Confirmation Modal */}
+      <PurchaseConfirmationModal
+        isOpen={showPurchaseModal}
+        onClose={handleClosePurchaseModal}
+        onConfirm={handleConfirmPurchase}
+        item={item}
+        isLoading={isPurchasing}
+      />
+    </>
   );
 };

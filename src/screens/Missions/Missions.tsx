@@ -1,5 +1,5 @@
 import { ClockIcon, CheckCircleIcon, StarIcon, CoinsIcon, PlusIcon, SearchIcon, FilterIcon, TrophyIcon, ZapIcon, TargetIcon, UserIcon, CalendarIcon, AwardIcon, XIcon, ChevronDownIcon, ImageIcon, UploadIcon } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -10,38 +10,183 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
+import { achievements, availableMissions, missions, upcomingMissions, xpHistory } from "../../constant/MissionJson";
+import { fetchUserMissions } from "../../apis/getMissionUser";
+import { fetchAllQuests, Quest } from "../../apis/getAllQuest";
+import { startMission } from "../../apis/startMission";
+import { fetchAllUsers } from "../../apis/getAllUsers";
+import { User } from "../Dashboard";
+
+
+
+
+interface MissionData {
+  title: string;
+  description: string;
+  banner: number[];
+  category: string;
+  type: string;
+  xpRewards: string;
+  coinsRewards: string;
+  participants: string[]; // ✅ Changed from string to string[]
+  unlockConditions: string;
+  submissionDeadline: string;
+  startDate: string;
+  endDate: string;
+  visibility: string;
+  steps: MissionStep[];
+}
+
+// ✅ Fixed FormattedAPIData interface to include participants
+interface FormattedAPIData {
+  title: string;
+  description: string;
+  banner: number[];
+  category: string;
+  type: string;
+  unlockConditions: string;
+  submissionDeadline: string;
+  startDate: string;
+  endDate: string;
+  visibility: string;
+  xpRewards: number;
+  coinsRewards: number;
+  participants: string[]; // ✅ Added participants field
+  steps: {
+    title: string;
+    description: string;
+    xpReward: number;
+    coinsReward: number;
+    isCompleted: boolean;
+    rewardType: string;
+    proof: number[];
+  }[];
+}
+
+// ✅ Fixed MultiSelectProps interface
+interface MultiSelectProps {
+  users: User[];
+  selectedIds: string[]; // ✅ Changed from string to string[]
+  onChange: (selectedIds: string[]) => void; // ✅ Changed parameter type
+  placeholder?: string;
+  disabled?: boolean;
+}
+
+interface MissionStep {
+  id: number;
+  title: string;
+  xpReward: string;
+  coinsReward: string;
+  description: string;
+  rewardType: string;
+}
+
+
+// Replace the FormattedAPIData interface with this:
+
+
+interface MissionCategory {
+  id: number;
+  name: string;
+  active: boolean;
+}
+
+interface APIResponse {
+  success: boolean;
+  message?: string;
+  data?: any;
+}
+
+interface MissionData {
+  title: string;
+  description: string;
+  banner: number[]; // Add this line
+  category: string;
+  type: string;
+  xpRewards: string;
+  coinsRewards: string;
+  unlockConditions: string;
+  submissionDeadline: string;
+  startDate: string;
+  endDate: string;
+  visibility: string;
+  steps: MissionStep[];
+}
+
+// Replace the FormattedAPIData interface with this:
+interface FormattedAPIData {
+  title: string;
+  description: string;
+  banner: number[];
+  category: string;
+  type: string;
+  unlockConditions: string;
+  submissionDeadline: string;
+  startDate: string;
+  endDate: string;
+  visibility: string;
+  xpRewards: number;
+  coinsRewards: number;
+  steps: {
+    title: string;
+    description: string;
+    xpReward: number;
+    coinsReward: number;
+    isCompleted: boolean;
+    rewardType: string;
+    proof: number[];
+  }[];
+}
+
+interface MultiSelectProps {
+  users: User[];
+  selectedIds: string;
+  onChange: (selectedIds: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+};
+declare const DarkProfessionalMultiSelect: React.FC<{
+  users: User[];
+  selectedIds: string[];
+  onChange: (selectedIds: string[]) => void;
+  placeholder: string;
+}>;
+
+
+
 
 export const Missions = (): JSX.Element => {
   const [activeTab, setActiveTab] = useState("all");
-  const [showNewMissionModal, setShowNewMissionModal] = useState(false);
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showSubmitMissionModal, setShowSubmitMissionModal] = useState(false);
   const [selectedMission, setSelectedMission] = useState<any>(null);
 
   // New Mission Form Data
-  const [missionData, setMissionData] = useState({
-    title: "Welcome Aboard Complete Your Onboarding 🚀",
-    description: "Get To Know Profile, Join The Conversation, And Link Your Account To Unlock All Epic Badges, And Join Full Community Access.",
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<boolean>(false);
+  const [showNewMissionModal, setShowNewMissionModal] = useState<boolean>();
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState<boolean>(false);
+  const [quests, setQuests] = useState<Quest[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  // ✅ Fixed initial state
+  const [missionData, setMissionData] = useState<MissionData>({
+    title: "",
+    description: "",
+    banner: [],
     category: "Onboarding",
     type: "Step by Step",
-    xpRewards: "40",
-    coinsRewards: "00",
-    unlockConditions: "Previous Mission Completion",
-    submissionDeadline: "Default / Secret Group",
-    startDate: "04 April 2025",
-    endDate: "30 April 2025",
+    xpRewards: "",
+    coinsRewards: "",
+    participants: [], // ✅ Changed from "" to []
+    unlockConditions: "No Requirements",
+    submissionDeadline: "1 Week",
+    startDate: "",
+    endDate: "",
     visibility: "Public",
     steps: [
       {
         id: 1,
-        title: "Complete Your Profile",
-        xpReward: "15",
-        coinsReward: "00",
-        description: "Add a profile picture, Username, and a short bio so others can Recognize You."
-      },
-      {
-        id: 2,
-        title: "Step 2",
+        title: "",
         xpReward: "",
         coinsReward: "",
         description: "",
@@ -50,15 +195,266 @@ export const Missions = (): JSX.Element => {
     ]
   });
 
-  // Mission Categories
-  const missionCategories = [
-    { id: "squad", name: "Squad", active: false },
-    { id: "onboarding", name: "Onboarding", active: true },
-    { id: "streaks", name: "Streaks", active: false },
-    { id: "achievements", name: "Achievements", active: false },
-    { id: "quests", name: "Quests", active: false },
-    { id: "category", name: "Category", active: false }
-  ];
+
+
+  const handleParticipantsChange = (selectedIds: string[]) => {
+    console.log('Participants selected:', selectedIds);
+
+    setMissionData(prev => ({
+      ...prev,
+      participants: selectedIds
+    }));
+  };
+
+  useEffect(() => {
+    console.log('missionData.participants updated:', missionData.participants);
+  }, [missionData.participants]);
+
+  const handleStartMission = async (id: string) => {
+    const response = await startMission(id);
+
+    if (response.success && response.result) {
+      console.log('🎯 Mission Started Successfully!');
+      console.log('Title:', response.result.title);
+      console.log('XP Reward:', response.result.xpReward);
+      // ✅ You can now use `response.result` safely
+    } else {
+      console.error('❌ Failed to start mission:', response.message);
+      // ✅ Show a toast, alert, or message to the user if needed
+    }
+  };
+
+
+
+
+  useEffect(() => {
+    const loadQuests = async () => {
+      try {
+        const response = await fetchAllQuests();
+        setQuests(response.result);
+      } catch (error) {
+        console.error("Failed to load quests:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadQuests();
+  }, []);
+
+  useEffect(() => {
+    const getUsersData = async () => {
+      try {
+        const data = await fetchAllUsers();
+        setUsers(data.result);
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    getUsersData();
+  }, []);
+
+
+  // Mission categories
+  const [missionCategories] = useState<MissionCategory[]>([
+    { id: 1, name: 'Onboarding', active: true },
+    { id: 2, name: 'Social', active: false },
+    { id: 3, name: 'Content', active: false },
+    { id: 4, name: 'Engagement', active: false },
+    { id: 5, name: 'Learning', active: false },
+  ]);
+
+  // Main mission data state with clean initial values
+
+  // API configuration
+  const API_BASE_URL: string = import.meta.env.VITE_API_URL || 'https://your-api-endpoint.com';
+  const API_ENDPOINTS = {
+    CREATE_MISSION: '/quests',
+  } as const;
+
+  // Validation function
+  const validateMissionData = (data: MissionData): string[] => {
+    const errors: string[] = [];
+
+    if (!data.title.trim()) errors.push('Mission title is required');
+    if (!data.description.trim()) errors.push('Mission description is required');
+    if (!data.category) errors.push('Mission category is required');
+    if (!data.type) errors.push('Mission type is required');
+    if (!data.startDate) errors.push('Start date is required');
+    if (!data.endDate) errors.push('End date is required');
+
+    // Validate steps
+    data.steps.forEach((step: MissionStep, index: number) => {
+      if (!step.title.trim()) errors.push(`Step ${index + 1} title is required`);
+      if (!step.description.trim()) errors.push(`Step ${index + 1} description is required`);
+    });
+
+    return errors;
+  };
+
+  // Format data for API
+  const formatMissionDataForAPI = (data: MissionData): FormattedAPIData => {
+    return {
+      title: data.title.trim(),
+      description: data.description.trim(),
+      banner: data.banner || [],
+      category: data.category,
+      type: data.type,
+      unlockConditions: data.unlockConditions,
+      submissionDeadline: data.submissionDeadline,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      visibility: data.visibility,
+      xpRewards: parseInt(data.xpRewards) || 0,
+      coinsRewards: parseInt(data.coinsRewards) || 0,
+      participants: data.participants, // ✅ Added participants field
+      steps: data.steps.map((step: MissionStep) => ({
+        title: step.title.trim(),
+        description: step.description.trim(),
+        xpReward: parseInt(step.xpReward) || 0,
+        coinsReward: parseInt(step.coinsReward) || 0,
+        isCompleted: false,
+        rewardType: step.rewardType,
+        proof: []
+      }))
+    };
+  };
+  // API call function
+  const createMissionAPI = async (missionData: FormattedAPIData): Promise<APIResponse> => {
+    try {
+      const response: Response = await fetch(`${API_BASE_URL}/quests`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(missionData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
+    }
+  };
+
+  // Event handlers
+  const handleCreateMission = async (): Promise<void> => {
+    setError(null);
+    setSuccess(false);
+
+    const validationErrors: string[] = validateMissionData(missionData);
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join(', '));
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+
+      const apiData: FormattedAPIData = {
+        ...formatMissionDataForAPI(missionData),
+        participants : missionData.participants.join(',')  // 👈 Converts to "id1,id2,id3"
+      };
+      const response: APIResponse = await createMissionAPI(apiData);
+
+      setSuccess(true);
+      console.log('Mission created successfully:', response);
+
+      // Optional: Reset form or close modal after success
+      // setTimeout(() => {
+      //   handleCloseNewMission();
+      // }, 2000);
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create mission. Please try again.';
+      setError(errorMessage);
+      console.error('Failed to create mission:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCloseNewMission = (): void => {
+    setShowNewMissionModal(false);
+    setError(null);
+    setSuccess(false);
+  };
+
+  const handleCategorySelect = (categoryName: string): void => {
+    setMissionData({ ...missionData, category: categoryName });
+    setShowCategoryDropdown(false);
+  };
+
+  const handleAddStep = (): void => {
+    const newStep: MissionStep = {
+      id: Date.now(),
+      title: "",
+      xpReward: "",
+      coinsReward: "",
+      description: "",
+      rewardType: "Screenshot Upload"
+    };
+    setMissionData({
+      ...missionData,
+      steps: [...missionData.steps, newStep]
+    });
+  };
+
+  const handleRemoveStep = (stepId: number): void => {
+    setMissionData({
+      ...missionData,
+      steps: missionData.steps.filter((step: MissionStep) => step.id !== stepId)
+    });
+  };
+
+  const updateStep = (stepId: number, field: keyof MissionStep, value: string): void => {
+    setMissionData({
+      ...missionData,
+      steps: missionData.steps.map((step: MissionStep) =>
+        step.id === stepId ? { ...step, [field]: value } : step
+      )
+    });
+  };
+
+  const resetForm = (): void => {
+    setMissionData({
+      title: "",
+      description: "",
+      banner: [],
+      category: "Onboarding",
+      type: "Step by Step",
+      xpRewards: "",
+      coinsRewards: "",
+      participants: [], // ✅ Changed from "" to []
+      unlockConditions: "No Requirements",
+      submissionDeadline: "1 Week",
+      startDate: "",
+      endDate: "",
+      visibility: "Public",
+      steps: [
+        {
+          id: 1,
+          title: "",
+          xpReward: "",
+          coinsReward: "",
+          description: "",
+          rewardType: "Screenshot Upload"
+        }
+      ]
+    });
+    setError(null);
+    setSuccess(false);
+  };
 
   // User XP data - moved from Dashboard
   const userXP = {
@@ -69,227 +465,6 @@ export const Missions = (): JSX.Element => {
     totalToNext: 14000
   };
 
-  // Achievements data
-  const achievements = [
-    {
-      id: 1,
-      name: "First Joiner",
-      xp: "+200XP",
-      icon: "👤",
-      color: "from-orange-500 to-orange-600",
-      unlocked: true
-    },
-    {
-      id: 2,
-      name: "Streak Keeper",
-      xp: "+200XP",
-      icon: "🔥",
-      color: "from-green-500 to-green-600",
-      unlocked: true
-    },
-    {
-      id: 3,
-      name: "Mission Hunter",
-      xp: "+500XP",
-      icon: "🎯",
-      color: "from-yellow-500 to-yellow-600",
-      unlocked: true
-    },
-    {
-      id: 4,
-      name: "Social Starter",
-      xp: "+700XP",
-      icon: "👥",
-      color: "from-gray-500 to-gray-600",
-      unlocked: false
-    }
-  ];
-
-  // Missions data - Updated to have one mission with all steps completed
-  const missions = [
-    {
-      id: 1,
-      title: "Join your first group",
-      xp: "+100 XP",
-      coins: 95,
-      status: "Completed",
-      icon: "👥",
-      color: "from-blue-500 to-blue-600",
-      steps: [
-        { id: 1, title: "Find a group", completed: true },
-        { id: 2, title: "Send join request", completed: true },
-        { id: 3, title: "Get accepted", completed: true }
-      ]
-    },
-    {
-      id: 2,
-      title: "Participate in an event",
-      xp: "+50 XP",
-      coins: 0,
-      status: "In Progress",
-      progress: 5,
-      maxProgress: 5,
-      icon: "🎪",
-      color: "from-purple-500 to-purple-600",
-      steps: [
-        { id: 1, title: "Register for event", completed: true },
-        { id: 2, title: "Attend event", completed: true },
-        { id: 3, title: "Complete event tasks", completed: true },
-        { id: 4, title: "Submit feedback", completed: true },
-        { id: 5, title: "Share experience", completed: true }
-      ]
-    },
-    {
-      id: 3,
-      title: "Post your first message",
-      xp: "+50 XP",
-      coins: 150,
-      status: "Completed",
-      icon: "💬",
-      color: "from-green-500 to-green-600",
-      steps: [
-        { id: 1, title: "Join a channel", completed: true },
-        { id: 2, title: "Write message", completed: true },
-        { id: 3, title: "Post message", completed: true }
-      ]
-    },
-    {
-      id: 4,
-      title: "Quest completed",
-      xp: "+150 XP",
-      coins: 30,
-      status: "Completed",
-      icon: "⚔️",
-      color: "from-orange-500 to-orange-600",
-      steps: [
-        { id: 1, title: "Accept quest", completed: true },
-        { id: 2, title: "Complete objectives", completed: true }
-      ]
-    },
-    {
-      id: 5,
-      title: "Invite a friend",
-      xp: "+60 XP",
-      coins: 0,
-      status: "Available",
-      icon: "👋",
-      color: "from-pink-500 to-pink-600",
-      steps: [
-        { id: 1, title: "Generate invite link", completed: false },
-        { id: 2, title: "Send to friend", completed: false },
-        { id: 3, title: "Friend joins", completed: false }
-      ]
-    },
-    {
-      id: 6,
-      title: "Daily Login Streak",
-      xp: "+70 XP",
-      coins: 0,
-      status: "Available",
-      icon: "📅",
-      color: "from-cyan-500 to-cyan-600",
-      steps: [
-        { id: 1, title: "Login day 1", completed: false },
-        { id: 2, title: "Login day 2", completed: false },
-        { id: 3, title: "Login day 3", completed: false }
-      ]
-    }
-  ];
-
-  // XP History data
-  const xpHistory = [
-    {
-      id: 1,
-      action: "Earned 200 XP For Completing 'Complete Your Profile'",
-      time: "2 Days Ago",
-      xp: "+200 XP",
-      icon: "✅"
-    },
-    {
-      id: 2,
-      action: "Joined A Group (+50 XP)",
-      time: "3 Days Ago",
-      xp: "+50 XP",
-      icon: "👥"
-    },
-    {
-      id: 3,
-      action: "Earned 150 XP For Unlocked Badge: Consistent Climber",
-      time: "5 Days Ago",
-      xp: "+150 XP",
-      icon: "🏆"
-    },
-    {
-      id: 4,
-      action: "Progress Milestone: 'Reached Level 8!' (+200 XP)",
-      time: "5 Days Ago",
-      xp: "+200 XP",
-      icon: "⭐"
-    },
-    {
-      id: 5,
-      action: "Daily Login Streak: '3 Days In A Row' (+45 XP)",
-      time: "6 Days Ago",
-      xp: "+45 XP",
-      icon: "🔥"
-    }
-  ];
-
-  // Upcoming missions
-  const upcomingMissions = [
-    {
-      id: 1,
-      title: "Invite A Friend And Earn",
-      xp: "+150 XP",
-      description: "Instantly!"
-    },
-    {
-      id: 2,
-      title: "Daily Login Streak: 4 Days",
-      xp: "+50 XP",
-      description: "Keep It Going For"
-    }
-  ];
-
-  // Available missions for submit screen
-  const availableMissions = [
-    {
-      id: 1,
-      title: "Welcome, Let's Get Started",
-      subtitle: "Complete Your Onboarding",
-      xp: "+25 XP",
-      coins: 12,
-      image: "🚀",
-      bgColor: "from-blue-500 to-blue-600"
-    },
-    {
-      id: 2,
-      title: "Link Your Steam Account",
-      subtitle: "Survey",
-      xp: "+25 XP",
-      coins: 12,
-      image: "🎮",
-      bgColor: "from-green-500 to-green-600"
-    },
-    {
-      id: 3,
-      title: "Complete The Feedback",
-      subtitle: "Survey",
-      xp: "+25 XP",
-      coins: 12,
-      image: "📝",
-      bgColor: "from-purple-500 to-purple-600"
-    },
-    {
-      id: 4,
-      title: "Weekly Challenge Top",
-      subtitle: "Score",
-      xp: "+25 XP",
-      coins: 12,
-      image: "🏆",
-      bgColor: "from-orange-500 to-orange-600"
-    }
-  ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -333,14 +508,6 @@ export const Missions = (): JSX.Element => {
     setShowNewMissionModal(true);
   };
 
-  const handleCloseNewMission = () => {
-    setShowNewMissionModal(false);
-  };
-
-  const handleCreateMission = () => {
-    console.log("Creating mission:", missionData);
-    setShowNewMissionModal(false);
-  };
 
   const handleSubmitMission = (mission: any) => {
     setSelectedMission(mission);
@@ -358,44 +525,196 @@ export const Missions = (): JSX.Element => {
     setSelectedMission(null);
   };
 
-  const handleAddStep = () => {
-    const newStep = {
-      id: missionData.steps.length + 1,
-      title: `Step ${missionData.steps.length + 1}`,
-      xpReward: "",
-      coinsReward: "",
-      description: "",
-      rewardType: "Screenshot Upload"
+
+
+  const DarkProfessionalMultiSelect: React.FC<MultiSelectProps> = ({
+    users,
+    selectedIds, // Now expects string[]
+    onChange,
+    placeholder = "Select participants...",
+    disabled = false
+  }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // ✅ Fixed to work with string[] instead of string
+    const selectedIdArray = selectedIds || [];
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+          setIsOpen(false);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleUserToggle = (userId: string) => {
+      let newSelectedIds: string[];
+
+      if (selectedIdArray.includes(userId)) {
+        newSelectedIds = selectedIdArray.filter(id => id !== userId);
+      } else {
+        newSelectedIds = [...selectedIdArray, userId];
+      }
+
+      onChange(newSelectedIds); // ✅ Pass array directly
     };
-    setMissionData({
-      ...missionData,
-      steps: [...missionData.steps, newStep]
-    });
+
+    const removeUser = (userId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      const newSelectedIds = selectedIdArray.filter(id => id !== userId);
+      onChange(newSelectedIds); // ✅ Pass array directly
+    };
+
+    const clearAll = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onChange([]); // ✅ Pass empty array
+    };
+
+    const getSelectedUsers = () => {
+      return users.filter((user: any) => selectedIdArray.includes(user.id));
+    };
+
+    return (
+      <div className="relative w-full" ref={dropdownRef}>
+        {/* Main Input Display */}
+        <div
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          className={`
+          min-h-[42px] w-full px-3 py-2 border border-[#333333] rounded-lg bg-[#1a1a1a]
+          cursor-pointer transition-all duration-200 hover:border-[#30bdee]
+          ${disabled ? 'bg-[#0a0a0a] cursor-not-allowed' : ''}
+          ${isOpen ? 'border-[#30bdee] bg-[#222222]' : ''}
+        `}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex-1 flex items-center flex-wrap gap-1">
+              {selectedIdArray.length === 0 ? (
+                <span className="text-[#ffffffb2]">{placeholder}</span>
+              ) : selectedIdArray.length === 1 ? (
+                <span className="text-white">{getSelectedUsers()[0]?.name}</span>
+              ) : (
+                <div className="flex flex-wrap gap-1">
+                  {getSelectedUsers().slice(0, 2).map((user: any) => (
+                    <span
+                      key={user.id}
+                      className="inline-flex items-center px-2 py-1 bg-[#30bdee]/20 text-[#30bdee] text-sm rounded-md"
+                    >
+                      {user.name}
+                      <button
+                        onClick={(e) => removeUser(user.id, e)}
+                        className="ml-1 text-[#30bdee] hover:text-white"
+                        type="button"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                  {selectedIdArray.length > 2 && (
+                    <span className="px-2 py-1 bg-[#333333] text-[#ffffffb2] text-sm rounded-md">
+                      +{selectedIdArray.length - 2} more
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 ml-2">
+              {selectedIdArray.length > 0 && !disabled && (
+                <button
+                  onClick={clearAll}
+                  className="text-[#ffffffb2] hover:text-white text-sm font-medium"
+                  type="button"
+                >
+                  Clear
+                </button>
+              )}
+              <svg
+                className={`w-4 h-4 text-[#ffffffb2] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Dropdown Menu */}
+        {isOpen && !disabled && (
+          <div className="absolute z-50 w-full mt-1 bg-[#1a1a1a] border border-[#333333] rounded-lg shadow-lg max-h-60 overflow-hidden">
+            {/* Header */}
+            <div className="px-3 py-2 bg-[#0a0a0a] border-b border-[#333333]">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-[#ffffffb2]">
+                  Select Participants ({selectedIdArray.length} selected)
+                </span>
+                {selectedIdArray.length > 0 && (
+                  <button
+                    onClick={(e) => clearAll(e)}
+                    className="text-xs text-[#30bdee] hover:text-white"
+                    type="button"
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Options List */}
+            <div className="max-h-48 overflow-y-auto">
+              {users.length === 0 ? (
+                <div className="px-3 py-4 text-center text-[#ffffffb2]">
+                  No users available
+                </div>
+              ) : (
+                users.map((user: any) => {
+                  const isSelected = selectedIdArray.includes(user.id);
+                  return (
+                    <div
+                      key={user.id}
+                      onClick={() => handleUserToggle(user.id)}
+                      className={`
+                      flex items-center px-3 py-2 cursor-pointer transition-colors
+                      hover:bg-[#333333] ${isSelected ? 'bg-[#30bdee]/10' : ''}
+                    `}
+                    >
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => { }} // Handled by parent div
+                          className="h-4 w-4 text-[#30bdee] focus:ring-[#30bdee] border-[#333333] rounded mr-3 bg-[#1a1a1a]"
+                        />
+                        <span className={`${isSelected ? 'font-medium text-[#30bdee]' : 'text-white'}`}>
+                          {user.name}
+                        </span>
+                      </div>
+                      {isSelected && (
+                        <svg className="w-4 h-4 text-[#30bdee] ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
-  const handleRemoveStep = (stepId: number) => {
-    setMissionData({
-      ...missionData,
-      steps: missionData.steps.filter(step => step.id !== stepId)
-    });
-  };
 
-  const updateStep = (stepId: number, field: string, value: string) => {
-    setMissionData({
-      ...missionData,
-      steps: missionData.steps.map(step => 
-        step.id === stepId ? { ...step, [field]: value } : step
-      )
-    });
-  };
-
-  const handleCategorySelect = (category: string) => {
-    setMissionData({ ...missionData, category });
-    setShowCategoryDropdown(false);
-  };
 
   // If Submit Mission modal is open, show it instead of the main content
-  if (showSubmitMissionModal && selectedMission) {
+  if (showSubmitMissionModal) {
     return (
       <div className="p-4 sm:p-6 lg:p-8 bg-[#0a0a0a] min-h-screen overflow-y-auto">
         {/* Header */}
@@ -415,7 +734,7 @@ export const Missions = (): JSX.Element => {
         <div className="max-w-4xl mx-auto space-y-6 lg:space-y-8">
           {/* Selected Mission Info */}
           <div className="bg-[#111111] border border-[#30bdee] rounded-2xl p-4 sm:p-6">
-            <div className="flex items-center gap-3 mb-4">
+            {/* <div className="flex items-center gap-3 mb-4">
               <div className={`w-12 h-12 bg-gradient-to-br ${selectedMission.color} rounded-xl flex items-center justify-center`}>
                 <span className="text-white text-xl">{selectedMission.icon}</span>
               </div>
@@ -431,7 +750,7 @@ export const Missions = (): JSX.Element => {
                   )}
                 </div>
               </div>
-            </div>
+            </div> */}
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 bg-green-600 text-white text-sm font-medium rounded-full">
                 Status
@@ -443,45 +762,7 @@ export const Missions = (): JSX.Element => {
           </div>
 
           {/* Available Missions Grid */}
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-white text-xl font-bold">Available Missions</h3>
-              <Button variant="ghost" className="text-[#30bdee] hover:text-white text-sm">
-                View all
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              {availableMissions.map((mission) => (
-                <div key={mission.id} className="bg-[#1a1a1a] border border-[#333333] rounded-xl overflow-hidden hover:border-[#30bdee] transition-all duration-300">
-                  {/* Mission Image */}
-                  <div className="aspect-square bg-[#2a2a2a] flex items-center justify-center relative">
-                    <div className={`w-16 h-16 bg-gradient-to-br ${mission.bgColor} rounded-2xl flex items-center justify-center shadow-lg`}>
-                      <span className="text-white text-2xl">{mission.image}</span>
-                    </div>
-                  </div>
 
-                  {/* Mission Content */}
-                  <div className="p-4">
-                    <h4 className="text-white font-bold text-sm mb-1">{mission.title}</h4>
-                    <p className="text-[#ffffffb2] text-xs mb-3">{mission.subtitle}</p>
-                    
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-yellow-400 font-bold text-sm">{mission.xp}</span>
-                      <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-[#30bdee] rounded-full" />
-                        <span className="text-white text-sm">{mission.coins}</span>
-                      </div>
-                    </div>
-
-                    <Button className="w-full bg-[#30bdee] hover:bg-[#2aa3d1] text-white rounded-lg text-sm">
-                      Start Mission
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* Upload Section */}
           <div className="bg-[#1a1a1a] border border-[#333333] rounded-2xl p-4 sm:p-6">
@@ -528,6 +809,8 @@ export const Missions = (): JSX.Element => {
 
   // If New Mission modal is open, show it instead of the main content
   if (showNewMissionModal) {
+
+
     return (
       <div className="p-4 sm:p-6 lg:p-8 bg-[#0a0a0a] min-h-screen overflow-y-auto">
         {/* Header */}
@@ -549,20 +832,35 @@ export const Missions = (): JSX.Element => {
           </Button>
         </div>
 
+        {/* Error and Success Messages */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded-lg">
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-6 p-4 bg-green-500/10 border border-green-500 rounded-lg">
+            <p className="text-green-400 text-sm">Mission created successfully! 🎉</p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
           {/* Left Column - Form */}
           <div className="xl:col-span-2 space-y-6 lg:space-y-8">
             {/* Mission Title */}
             <div>
               <label className="text-[#ffffffb2] text-xs sm:text-sm block mb-3">
-                Mission Title
+                Mission Title <span className="text-red-400">*</span>
               </label>
               <div className="relative">
                 <Input
                   type="text"
                   value={missionData.title}
-                  onChange={(e) => setMissionData({ ...missionData, title: e.target.value })}
-                  className="h-10 sm:h-12 bg-[#1a1a1a] border-[#333333] rounded-lg text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#222222] transition-all text-sm sm:text-base pr-10"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMissionData({ ...missionData, title: e.target.value })}
+                  className={`h-10 sm:h-12 bg-[#1a1a1a] border-[#333333] rounded-lg text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#222222] transition-all text-sm sm:text-base pr-10 ${!missionData.title ? 'border-red-400/50' : ''
+                    }`}
+                  placeholder="Enter mission title..."
                 />
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#ffffffb2]">
                   🚀
@@ -570,29 +868,51 @@ export const Missions = (): JSX.Element => {
               </div>
             </div>
 
-            {/* Upload Image */}
+            {/* Upload Banner */}
             <div>
               <label className="text-[#ffffffb2] text-xs sm:text-sm block mb-3">
-                Upload Image (Optional)
+                Upload Banner (Optional)
               </label>
-              <div className="border-2 border-dashed border-[#333333] rounded-lg p-6 sm:p-8 text-center hover:border-[#30bdee] transition-colors cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    // For now, just store the file name - in production you'd upload and get an ID
+                    console.log('Banner file selected:', file.name);
+                    // You would implement actual file upload here and get back an ID
+                    // setMissionData({ ...missionData, banner: [uploadedFileId] });
+                  }
+                }}
+                className="hidden"
+                id="banner-upload"
+              />
+              <label
+                htmlFor="banner-upload"
+                className="border-2 border-dashed border-[#333333] rounded-lg p-6 sm:p-8 text-center hover:border-[#30bdee] transition-colors cursor-pointer block"
+              >
                 <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#333333] rounded-lg flex items-center justify-center mx-auto mb-4">
                   <ImageIcon className="w-6 h-6 sm:w-8 sm:h-8 text-[#ffffffb2]" />
                 </div>
                 <p className="text-[#ffffffb2] text-xs sm:text-sm mb-2">Click to upload or drag and drop</p>
                 <p className="text-[#ffffffb2] text-xs">SVG, PNG, JPG or GIF (max. 800x400px)</p>
-              </div>
+                {missionData.banner && missionData.banner.length > 0 && (
+                  <p className="text-green-400 text-xs mt-2">✓ Banner uploaded</p>
+                )}
+              </label>
             </div>
 
             {/* Description */}
             <div>
               <label className="text-[#ffffffb2] text-xs sm:text-sm block mb-3">
-                Description
+                Description <span className="text-red-400">*</span>
               </label>
               <textarea
                 value={missionData.description}
-                onChange={(e) => setMissionData({ ...missionData, description: e.target.value })}
-                className="w-full h-20 sm:h-24 bg-[#1a1a1a] border border-[#333333] rounded-lg text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#222222] transition-all text-sm sm:text-base p-3 sm:p-4 resize-none"
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMissionData({ ...missionData, description: e.target.value })}
+                className={`w-full h-20 sm:h-24 bg-[#1a1a1a] border border-[#333333] rounded-lg text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#222222] transition-all text-sm sm:text-base p-3 sm:p-4 resize-none ${!missionData.description ? 'border-red-400/50' : ''
+                  }`}
                 placeholder="Add mission description..."
               />
             </div>
@@ -612,17 +932,16 @@ export const Missions = (): JSX.Element => {
                     <span>{missionData.category}</span>
                     <ChevronDownIcon className="w-3 h-3 sm:w-4 sm:h-4" />
                   </Button>
-                  
+
                   {/* Category Dropdown */}
                   {showCategoryDropdown && (
                     <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-[#333333] rounded-lg shadow-2xl z-50 overflow-hidden">
-                      {missionCategories.map((category) => (
+                      {missionCategories.map((category: MissionCategory) => (
                         <button
                           key={category.id}
                           onClick={() => handleCategorySelect(category.name)}
-                          className={`w-full px-3 sm:px-4 py-2 sm:py-3 text-left hover:bg-[#333333] transition-colors text-sm sm:text-base ${
-                            category.active ? 'bg-[#30bdee] text-white' : 'text-[#ffffffb2] hover:text-white'
-                          }`}
+                          className={`w-full px-3 sm:px-4 py-2 sm:py-3 text-left hover:bg-[#333333] transition-colors text-sm sm:text-base ${category.name === missionData.category ? 'bg-[#30bdee] text-white' : 'text-[#ffffffb2] hover:text-white'
+                            }`}
                         >
                           {category.name}
                         </button>
@@ -631,12 +950,12 @@ export const Missions = (): JSX.Element => {
                   )}
                 </div>
               </div>
-              
+
               <div>
                 <label className="text-[#ffffffb2] text-xs sm:text-sm block mb-3">
                   Mission Type
                 </label>
-                <Select value={missionData.type} onValueChange={(value) => setMissionData({ ...missionData, type: value })}>
+                <Select value={missionData.type} onValueChange={(value: string) => setMissionData({ ...missionData, type: value })}>
                   <SelectTrigger className="h-10 sm:h-12 bg-[#1a1a1a] border-[#333333] rounded-lg text-white hover:bg-[#222222] hover:border-[#30bdee] transition-all text-sm sm:text-base">
                     <SelectValue />
                   </SelectTrigger>
@@ -658,30 +977,46 @@ export const Missions = (): JSX.Element => {
                 </label>
                 <div className="relative">
                   <Input
-                    type="text"
+                    type="number"
                     value={missionData.xpRewards}
-                    onChange={(e) => setMissionData({ ...missionData, xpRewards: e.target.value })}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMissionData({ ...missionData, xpRewards: e.target.value })}
                     className="h-10 sm:h-12 bg-[#1a1a1a] border-[#333333] rounded-lg text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#222222] transition-all text-sm sm:text-base pr-12"
+                    placeholder="0"
+                    min="0"
                   />
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-yellow-400 font-bold text-xs sm:text-sm">
                     +XP
                   </div>
                 </div>
               </div>
-              
+
               <div>
                 <label className="text-[#ffffffb2] text-xs sm:text-sm block mb-3">
                   Coins Rewards 🪙
                 </label>
                 <div className="relative">
                   <Input
-                    type="text"
+                    type="number"
                     value={missionData.coinsRewards}
-                    onChange={(e) => setMissionData({ ...missionData, coinsRewards: e.target.value })}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMissionData({ ...missionData, coinsRewards: e.target.value })}
                     className="h-10 sm:h-12 bg-[#1a1a1a] border-[#333333] rounded-lg text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#222222] transition-all text-sm sm:text-base pl-12"
+                    placeholder="0"
+                    min="0"
                   />
                   <div className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 sm:w-6 sm:h-6 bg-[#30bdee] rounded-full" />
                 </div>
+              </div>
+
+              <div>
+                <label className="text-[#ffffffb2] text-xs sm:text-sm block mb-3">
+                  Participants
+                </label>
+                <DarkProfessionalMultiSelect
+                  users={users}
+                  selectedIds={missionData.participants} // Now passes string[]
+                  onChange={handleParticipantsChange} // Now receives string[]
+                  placeholder="Choose participants..."
+                />
               </div>
             </div>
 
@@ -691,7 +1026,7 @@ export const Missions = (): JSX.Element => {
                 <label className="text-[#ffffffb2] text-xs sm:text-sm block mb-3">
                   Unlock Conditions
                 </label>
-                <Select value={missionData.unlockConditions} onValueChange={(value) => setMissionData({ ...missionData, unlockConditions: value })}>
+                <Select value={missionData.unlockConditions} onValueChange={(value: string) => setMissionData({ ...missionData, unlockConditions: value })}>
                   <SelectTrigger className="h-10 sm:h-12 bg-[#1a1a1a] border-[#333333] rounded-lg text-white hover:bg-[#222222] hover:border-[#30bdee] transition-all text-sm sm:text-base">
                     <SelectValue />
                   </SelectTrigger>
@@ -703,20 +1038,20 @@ export const Missions = (): JSX.Element => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <label className="text-[#ffffffb2] text-xs sm:text-sm block mb-3">
                   Submission Deadline
                 </label>
-                <Select value={missionData.submissionDeadline} onValueChange={(value) => setMissionData({ ...missionData, submissionDeadline: value })}>
+                <Select value={missionData.submissionDeadline} onValueChange={(value: string) => setMissionData({ ...missionData, submissionDeadline: value })}>
                   <SelectTrigger className="h-10 sm:h-12 bg-[#1a1a1a] border-[#333333] rounded-lg text-white hover:bg-[#222222] hover:border-[#30bdee] transition-all text-sm sm:text-base">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-[#1a1a1a] border-[#333333]">
-                    <SelectItem value="Default / Secret Group" className="text-white hover:bg-[#333333]">Default / Secret Group</SelectItem>
                     <SelectItem value="1 Week" className="text-white hover:bg-[#333333]">1 Week</SelectItem>
                     <SelectItem value="2 Weeks" className="text-white hover:bg-[#333333]">2 Weeks</SelectItem>
                     <SelectItem value="1 Month" className="text-white hover:bg-[#333333]">1 Month</SelectItem>
+                    <SelectItem value="Custom" className="text-white hover:bg-[#333333]">Custom</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -726,33 +1061,35 @@ export const Missions = (): JSX.Element => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
               <div>
                 <label className="text-[#ffffffb2] text-xs sm:text-sm block mb-3">
-                  Start Date
+                  Start Date <span className="text-red-400">*</span>
                 </label>
                 <Input
-                  type="text"
+                  type="date"
                   value={missionData.startDate}
-                  onChange={(e) => setMissionData({ ...missionData, startDate: e.target.value })}
-                  className="h-10 sm:h-12 bg-[#1a1a1a] border-[#333333] rounded-lg text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#222222] transition-all text-sm sm:text-base"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMissionData({ ...missionData, startDate: e.target.value })}
+                  className={`h-10 sm:h-12 bg-[#1a1a1a] border-[#333333] rounded-lg text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#222222] transition-all text-sm sm:text-base ${!missionData.startDate ? 'border-red-400/50' : ''
+                    }`}
                 />
               </div>
-              
+
               <div>
                 <label className="text-[#ffffffb2] text-xs sm:text-sm block mb-3">
-                  End Date
+                  End Date <span className="text-red-400">*</span>
                 </label>
                 <Input
-                  type="text"
+                  type="date"
                   value={missionData.endDate}
-                  onChange={(e) => setMissionData({ ...missionData, endDate: e.target.value })}
-                  className="h-10 sm:h-12 bg-[#1a1a1a] border-[#333333] rounded-lg text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#222222] transition-all text-sm sm:text-base"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMissionData({ ...missionData, endDate: e.target.value })}
+                  className={`h-10 sm:h-12 bg-[#1a1a1a] border-[#333333] rounded-lg text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#222222] transition-all text-sm sm:text-base ${!missionData.endDate ? 'border-red-400/50' : ''
+                    }`}
                 />
               </div>
-              
+
               <div>
                 <label className="text-[#ffffffb2] text-xs sm:text-sm block mb-3">
                   Visibility
                 </label>
-                <Select value={missionData.visibility} onValueChange={(value) => setMissionData({ ...missionData, visibility: value })}>
+                <Select value={missionData.visibility} onValueChange={(value: string) => setMissionData({ ...missionData, visibility: value })}>
                   <SelectTrigger className="h-10 sm:h-12 bg-[#1a1a1a] border-[#333333] rounded-lg text-white hover:bg-[#222222] hover:border-[#30bdee] transition-all text-sm sm:text-base">
                     <SelectValue />
                   </SelectTrigger>
@@ -779,7 +1116,7 @@ export const Missions = (): JSX.Element => {
               </div>
 
               <div className="space-y-4 sm:space-y-6">
-                {missionData.steps.map((step, index) => (
+                {missionData.steps.map((step: MissionStep, index: number) => (
                   <div key={step.id} className="bg-[#1a1a1a] border border-[#333333] rounded-lg p-4 sm:p-6">
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="text-[#30bdee] text-base sm:text-lg font-bold">Step {index + 1}</h4>
@@ -789,22 +1126,24 @@ export const Missions = (): JSX.Element => {
                           variant="ghost"
                           className="text-red-400 hover:text-red-300 hover:bg-red-400/10 p-2 text-sm"
                         >
-                          Remove All
+                          Remove
                         </Button>
                       )}
                     </div>
 
                     <div className="space-y-3 sm:space-y-4">
-                      {/* Mission Title */}
+                      {/* Step Title */}
                       <div>
                         <label className="text-yellow-400 text-xs sm:text-sm block mb-2 font-medium">
-                          Mission Title
+                          Step Title <span className="text-red-400">*</span>
                         </label>
                         <Input
                           type="text"
                           value={step.title}
-                          onChange={(e) => updateStep(step.id, 'title', e.target.value)}
-                          className="h-8 sm:h-10 bg-[#0a0a0a] border-[#333333] rounded-lg text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#111111] transition-all text-xs sm:text-sm"
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateStep(step.id, 'title', e.target.value)}
+                          className={`h-8 sm:h-10 bg-[#0a0a0a] border-[#333333] rounded-lg text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#111111] transition-all text-xs sm:text-sm ${!step.title ? 'border-red-400/50' : ''
+                            }`}
+                          placeholder="Enter step title..."
                         />
                       </div>
 
@@ -816,27 +1155,31 @@ export const Missions = (): JSX.Element => {
                           </label>
                           <div className="relative">
                             <Input
-                              type="text"
+                              type="number"
                               value={step.xpReward}
-                              onChange={(e) => updateStep(step.id, 'xpReward', e.target.value)}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateStep(step.id, 'xpReward', e.target.value)}
                               className="h-8 sm:h-10 bg-[#0a0a0a] border-[#333333] rounded-lg text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#111111] transition-all text-xs sm:text-sm pr-10"
+                              placeholder="0"
+                              min="0"
                             />
                             <div className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 text-yellow-400 text-xs font-bold">
                               +XP
                             </div>
                           </div>
                         </div>
-                        
+
                         <div>
                           <label className="text-yellow-400 text-xs sm:text-sm block mb-2 font-medium">
                             Coins Rewards 🪙
                           </label>
                           <div className="relative">
                             <Input
-                              type="text"
+                              type="number"
                               value={step.coinsReward}
-                              onChange={(e) => updateStep(step.id, 'coinsReward', e.target.value)}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateStep(step.id, 'coinsReward', e.target.value)}
                               className="h-8 sm:h-10 bg-[#0a0a0a] border-[#333333] rounded-lg text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#111111] transition-all text-xs sm:text-sm pl-8 sm:pl-10"
+                              placeholder="0"
+                              min="0"
                             />
                             <div className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 bg-[#30bdee] rounded-full" />
                           </div>
@@ -846,22 +1189,23 @@ export const Missions = (): JSX.Element => {
                       {/* Description */}
                       <div>
                         <label className="text-yellow-400 text-xs sm:text-sm block mb-2 font-medium">
-                          Description
+                          Description <span className="text-red-400">*</span>
                         </label>
                         <textarea
                           value={step.description}
-                          onChange={(e) => updateStep(step.id, 'description', e.target.value)}
-                          className="w-full h-16 sm:h-20 bg-[#0a0a0a] border border-[#333333] rounded-lg text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#111111] transition-all text-xs sm:text-sm p-2 sm:p-3 resize-none"
+                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateStep(step.id, 'description', e.target.value)}
+                          className={`w-full h-16 sm:h-20 bg-[#0a0a0a] border border-[#333333] rounded-lg text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#111111] transition-all text-xs sm:text-sm p-2 sm:p-3 resize-none ${!step.description ? 'border-red-400/50' : ''
+                            }`}
                           placeholder="Add step description..."
                         />
                       </div>
 
-                      {/* Proof Type */}
+                      {/* Reward Type */}
                       <div>
                         <label className="text-yellow-400 text-xs sm:text-sm block mb-2 font-medium">
-                          Proof Type
+                          Reward Type
                         </label>
-                        <Select value={step.rewardType} onValueChange={(value) => updateStep(step.id, 'rewardType', value)}>
+                        <Select value={step.rewardType} onValueChange={(value: string) => updateStep(step.id, 'rewardType', value)}>
                           <SelectTrigger className="h-8 sm:h-10 bg-[#0a0a0a] border-[#333333] rounded-lg text-white hover:bg-[#111111] hover:border-[#30bdee] transition-all text-xs sm:text-sm">
                             <SelectValue />
                           </SelectTrigger>
@@ -884,7 +1228,7 @@ export const Missions = (): JSX.Element => {
           <div className="xl:col-span-1">
             <div className="bg-[#1a1a1a] border border-[#333333] rounded-lg p-4 sm:p-6 sticky top-8">
               <h3 className="text-white text-base sm:text-lg font-bold mb-4">Preview</h3>
-              
+
               {/* Discord-style preview */}
               <div className="bg-[#36393f] rounded-lg p-3 sm:p-4 mb-4">
                 <div className="flex items-center gap-2 sm:gap-3 mb-3">
@@ -892,47 +1236,90 @@ export const Missions = (): JSX.Element => {
                     <span className="text-white text-xs sm:text-sm">🤖</span>
                   </div>
                   <div>
-                    <span className="text-white font-semibold text-xs sm:text-sm">Welcome Aboard</span>
+                    <span className="text-white font-semibold text-xs sm:text-sm">Mission Bot</span>
                     <span className="text-[#b9bbbe] text-xs ml-2">BOT</span>
                   </div>
                 </div>
-                
+
                 <div className="bg-[#2f3136] rounded p-2 sm:p-3 mb-3">
                   <p className="text-[#dcddde] text-xs sm:text-sm leading-relaxed">
-                    🚀 Welcome Aboard: Complete Your Onboarding 🚀
+                    🚀 {missionData.title || 'New Mission'}
                   </p>
                   <p className="text-[#b9bbbe] text-xs mt-2">
-                    Get To Your Profile, Join The Conversation, And Link Your Account To Unlock All Epic Badges, And Join Full Community Access.
+                    {missionData.description || 'Mission description will appear here...'}
                   </p>
                 </div>
 
                 <div className="text-[#b9bbbe] text-xs">
-                  Status: <span className="text-[#00d166]">Active</span>
+                  Status: <span className="text-[#00d166]">Draft</span>
                 </div>
               </div>
 
               {/* Mission Details */}
               <div className="space-y-2 sm:space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-[#ffffffb2] text-xs sm:text-sm">🚀 Welcome Aboard: Complete Your Onboarding 🚀</span>
-                </div>
-                
-                <div className="text-[#ffffffb2] text-xs sm:text-sm">
-                  Get To Your Profile, Join The Conversation, And Link Your Account To Unlock All Epic Badges, And Join Full Community Access.
+                  <span className="text-[#ffffffb2] text-xs sm:text-sm">
+                    Category: <span className="text-[#30bdee]">{missionData.category}</span>
+                  </span>
                 </div>
 
-                <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm">
-                  <div className="flex items-center gap-1">
-                    <span className="text-yellow-400">Step 1</span>
-                    <span className="text-[#ffffffb2]">•</span>
-                    <span className="text-yellow-400">+40 XP</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-yellow-400">Step 2</span>
-                    <span className="text-[#ffffffb2]">•</span>
-                    <span className="text-yellow-400">+40 XP</span>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#ffffffb2] text-xs sm:text-sm">
+                    Type: <span className="text-[#30bdee]">{missionData.type}</span>
+                  </span>
                 </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[#ffffffb2] text-xs sm:text-sm">
+                    Visibility: <span className="text-[#30bdee]">{missionData.visibility}</span>
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[#ffffffb2] text-xs sm:text-sm">
+                    Total Rewards: <span className="text-yellow-400">+{missionData.xpRewards || '0'} XP</span>
+                    {missionData.coinsRewards && parseInt(missionData.coinsRewards) > 0 && (
+                      <span className="text-yellow-400">, +{missionData.coinsRewards} Coins</span>
+                    )}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[#ffffffb2] text-xs sm:text-sm">
+                    Deadline: <span className="text-[#30bdee]">{missionData.submissionDeadline}</span>
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[#ffffffb2] text-xs sm:text-sm">
+                    Unlock: <span className="text-[#30bdee]">{missionData.unlockConditions}</span>
+                  </span>
+                </div>
+
+                <div className="pt-2 border-t border-[#333333]">
+                  <span className="text-[#ffffffb2] text-xs sm:text-sm block mb-2">Steps ({missionData.steps.length}):</span>
+                  {missionData.steps.map((step: MissionStep, index: number) => (
+                    <div key={step.id} className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-yellow-400">#{index + 1} {step.title || 'Untitled Step'}</span>
+                      <div className="flex gap-2">
+                        {step.xpReward && (
+                          <span className="text-yellow-400">+{step.xpReward} XP</span>
+                        )}
+                        {step.coinsReward && (
+                          <span className="text-yellow-400">+{step.coinsReward} Coins</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {missionData.banner && missionData.banner.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#ffffffb2] text-xs sm:text-sm">
+                      Banner: <span className="text-green-400">✓ Uploaded</span>
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -940,22 +1327,51 @@ export const Missions = (): JSX.Element => {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mt-6 lg:mt-8 pt-4 sm:pt-6 border-t border-[#333333] gap-4">
-          <Button
-            onClick={handleCloseNewMission}
-            className="bg-[#333333] hover:bg-[#444444] text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg font-semibold order-2 sm:order-1"
-          >
-            Back To Missions
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              onClick={handleCloseNewMission}
+              disabled={isLoading}
+              className="bg-[#333333] hover:bg-[#444444] text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Back To Missions
+            </Button>
+
+            <Button
+              onClick={resetForm}
+              disabled={isLoading}
+              variant="outline"
+              className="border-[#333333] text-[#ffffffb2] hover:bg-[#333333] hover:text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Reset Form
+            </Button>
+          </div>
+
           <Button
             onClick={handleCreateMission}
-            className="bg-[#30bdee] hover:bg-[#2aa3d1] text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg font-semibold order-1 sm:order-2"
+            disabled={isLoading}
+            className="bg-[#30bdee] hover:bg-[#2aa3d1] text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[140px]"
           >
-            Create Mission
+            {isLoading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Creating...
+              </>
+            ) : (
+              'Create Mission'
+            )}
           </Button>
         </div>
       </div>
     );
   }
+
+
+
+
+
 
   // Main Missions Screen
   return (
@@ -1003,7 +1419,7 @@ export const Missions = (): JSX.Element => {
               </div>
               <div className="relative">
                 <div className="w-full bg-[#333333] rounded-full h-2 sm:h-3 overflow-hidden">
-                  <div 
+                  <div
                     className="bg-gradient-to-r from-orange-500 to-yellow-500 h-2 sm:h-3 rounded-full transition-all duration-1000 ease-out shadow-lg"
                     style={{ width: `${((userXP.totalToNext - userXP.xpToNext) / userXP.totalToNext) * 100}%` }}
                   />
@@ -1053,162 +1469,180 @@ export const Missions = (): JSX.Element => {
         </Card>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
-        {/* Missions List */}
-        <Card className="bg-[#111111] border-[#333333] overflow-hidden">
-          <CardHeader className="pb-3 sm:pb-4">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 gap-4">
-              <CardTitle className="text-white font-['Rajdhani',Helvetica] font-bold text-lg sm:text-xl">
-                Missions List
-              </CardTitle>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
-                <div className="relative">
-                  <Input
-                    className="h-8 sm:h-10 bg-[#0a0a0a] border-[#333333] rounded-lg pl-8 sm:pl-10 pr-4 font-['Rajdhani',Helvetica] font-medium text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#111111] transition-all text-xs sm:text-sm w-full sm:w-48"
-                    placeholder="Search Item"
-                  />
-                  <SearchIcon className="absolute w-3 h-3 sm:w-4 sm:h-4 top-2.5 sm:top-3 left-2.5 sm:left-3 text-[#ffffffb2]" />
+      <div className="flex flex-col xl:flex-row gap-6 lg:gap-8">
+        {/* Main Content Grid */}
+        <div className="flex-1">
+          {/* Missions List */}
+          <Card className="bg-[#111111] border-[#333333] overflow-hidden">
+            <CardHeader className="pb-3 sm:pb-4">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 gap-4">
+                <CardTitle className="text-white font-['Rajdhani',Helvetica] font-bold text-lg sm:text-xl">
+                  Missions List
+                </CardTitle>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+                  <div className="relative">
+                    <Input
+                      className="h-8 sm:h-10 bg-[#0a0a0a] border-[#333333] rounded-lg pl-8 sm:pl-10 pr-4 font-['Rajdhani',Helvetica] font-medium text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#111111] transition-all text-xs sm:text-sm w-full sm:w-48"
+                      placeholder="Search Item"
+                    />
+                    <SearchIcon className="absolute w-3 h-3 sm:w-4 sm:h-4 top-2.5 sm:top-3 left-2.5 sm:left-3 text-[#ffffffb2]" />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    className="h-8 sm:h-10 px-3 sm:px-4 py-2 bg-[#0a0a0a] border border-[#333333] rounded-lg flex items-center gap-2 hover:bg-[#111111] hover:border-[#30bdee] transition-all text-[#ffffffb2] hover:text-white text-xs sm:text-sm whitespace-nowrap"
+                  >
+                    <span>Sort by</span>
+                    <FilterIcon className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  className="h-8 sm:h-10 px-3 sm:px-4 py-2 bg-[#0a0a0a] border border-[#333333] rounded-lg flex items-center gap-2 hover:bg-[#111111] hover:border-[#30bdee] transition-all text-[#ffffffb2] hover:text-white text-xs sm:text-sm"
-                >
-                  <span>Sort by</span>
-                  <FilterIcon className="w-3 h-3 sm:w-4 sm:h-4" />
-                </Button>
               </div>
-            </div>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6">
+              <div className="space-y-6 lg:space-y-8">
+                {/* Group Mission Snapshot */}
+                <div className="bg-[#111111] border border-[#333333] rounded-2xl p-3 sm:p-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
+                    <h3 className="text-white text-base sm:text-lg lg:text-xl font-bold leading-tight">
+                      Group Mission snapshot
+                    </h3>
+                    <Button
+                      className="bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 px-3 sm:px-4 py-2 rounded-lg text-sm transition-colors w-full sm:w-auto flex-shrink-0"
+                      onClick={handleNewMission}
+                    >
+                      <PlusIcon className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span className="whitespace-nowrap">New Mission</span>
+                    </Button>
+                  </div>
 
-            {/* Mission Tabs */}
-            <div className="flex gap-4 sm:gap-6 border-b border-[#333333] overflow-x-auto">
-              <button
-                onClick={() => setActiveTab("all")}
-                className={`pb-2 sm:pb-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
-                  activeTab === "all" 
-                    ? "text-[#30bdee] border-b-2 border-[#30bdee]" 
-                    : "text-[#ffffffb2] hover:text-white"
-                }`}
-              >
-                All Missions
-              </button>
-              <button
-                onClick={() => setActiveTab("completed")}
-                className={`pb-2 sm:pb-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
-                  activeTab === "completed" 
-                    ? "text-[#30bdee] border-b-2 border-[#30bdee]" 
-                    : "text-[#ffffffb2] hover:text-white"
-                }`}
-              >
-                Completed
-              </button>
-              <button
-                onClick={() => setActiveTab("in-progress")}
-                className={`pb-2 sm:pb-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
-                  activeTab === "in-progress" 
-                    ? "text-[#30bdee] border-b-2 border-[#30bdee]" 
-                    : "text-[#ffffffb2] hover:text-white"
-                }`}
-              >
-                In Progress
-              </button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {/* New Mission Button */}
-            <div className="mb-4 sm:mb-6">
-              <Button 
-                onClick={handleNewMission}
-                className="w-full bg-transparent border border-[#00cfff] text-[#00cfff] hover:bg-[#00cfff]/10 rounded-lg h-10 sm:h-12 font-semibold transition-colors text-sm sm:text-base"
-              >
-                <PlusIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                New Mission
-              </Button>
-            </div>
+                  {/* Missions Table Header - Hidden on mobile */}
+                  <div className="hidden lg:grid grid-cols-5 gap-2 p-3 bg-[#ffffff06] rounded-lg mb-4 text-[#ffffffb2] text-sm font-medium">
+                    <div className="truncate">Missions</div>
+                    <div className="truncate">XP Boost</div>
+                    <div className="truncate">Coins</div>
+                    <div className="truncate">Status</div>
+                    <div className="truncate">Action</div>
+                  </div>
 
-            {/* Missions List - Scrollable */}
-            <div className="space-y-3 sm:space-y-4 max-h-80 sm:max-h-96 overflow-y-auto">
-              {filteredMissions.map((mission) => (
-                <div key={mission.id} className="p-3 sm:p-4 bg-[#ffffff06] rounded-lg hover:bg-[#ffffff08] transition-colors">
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    {/* Mission Icon */}
-                    <div className={`w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br ${mission.color} rounded-xl flex items-center justify-center shadow-lg`}>
-                      <span className="text-white text-base sm:text-xl">{mission.icon}</span>
-                    </div>
-
-                    {/* Mission Details */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
-                        <h3 className="text-white font-semibold text-sm sm:text-lg truncate">{mission.title}</h3>
-                        <div className="flex items-center gap-2">
-                          <span className="text-yellow-400 font-bold text-xs sm:text-sm">{mission.xp}</span>
-                          {mission.coins > 0 && (
-                            <div className="flex items-center gap-1">
-                              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-[#30bdee] rounded-full" />
-                              <span className="text-white text-xs sm:text-sm">{mission.coins}</span>
+                  {/* Missions List with Scroll */}
+                  <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-track-[#111111] scrollbar-thumb-[#333333] hover:scrollbar-thumb-[#30bdee] pr-2">
+                    <div className="space-y-2">
+                      {quests.map((mission: any) => (
+                        <div
+                          key={mission.id}
+                          className="lg:grid lg:grid-cols-5 lg:gap-2 p-3 bg-[#ffffff03] rounded-lg hover:bg-[#ffffff06] transition-colors lg:items-center"
+                        >
+                          {/* Mobile Card Layout */}
+                          <div className="lg:hidden space-y-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-white text-sm font-medium leading-tight flex-1 min-w-0 break-words">
+                                {mission.title}
+                              </p>
+                              <span
+                                className={`px-2 py-1 rounded text-xs font-medium flex-shrink-0 ${mission.isActive
+                                  ? "bg-green-600 text-white"
+                                  : "bg-gray-600 text-white"
+                                  }`}
+                              >
+                                {mission.isActive ? "Active" : "Inactive"}
+                              </span>
                             </div>
-                          )}
-                        </div>
-                      </div>
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <span className="text-yellow-400 text-sm font-bold flex-shrink-0">
+                                  {mission.xpRewards}
+                                </span>
+                                <div className="flex items-center gap-1 min-w-0">
+                                  <div className="w-3 h-3 bg-[#30bdee] rounded-full flex-shrink-0" />
+                                  <span className="text-white text-sm truncate">{mission.coinsRewards}</span>
+                                </div>
+                              </div>
+                              <div className="flex gap-1 flex-shrink-0">
+                                <div className="flex gap-1 flex-shrink-0">
+                                  <div className="flex gap-1">
+                                    {mission?.UserQuest?.length === 0 ? (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="w-28 bg-blue-600 text-white text-sm font-medium rounded text-center justify-center"
+                                        onClick={() => handleStartMission(mission.id)}
+                                      >
+                                        <span className="truncate block w-full">Start</span>
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="w-28 bg-green-600 text-white text-sm font-medium rounded text-center justify-center"
+                                        onClick={() => setShowSubmitMissionModal(!showSubmitMissionModal)}
+                                      >
+                                        <span className="truncate block w-full">Submit</span>
+                                      </Button>
+                                    )}
+                                  </div>
 
-                      {/* Progress Bar for In Progress missions */}
-                      {mission.status === "In Progress" && mission.progress !== undefined && (
-                        <div className="mb-3">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-[#ffffffb2] text-xs sm:text-sm">Progress</span>
-                            <span className="text-white text-xs sm:text-sm">Step {mission.progress} of {mission.maxProgress}</span>
-                          </div>
-                          <div className="w-full bg-[#333333] rounded-full h-1.5 sm:h-2">
-                            <div 
-                              className="bg-gradient-to-r from-[#30bdee] to-[#65cbff] h-1.5 sm:h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${(mission.progress! / mission.maxProgress!) * 100}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
 
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(mission.status)}
-                          <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(mission.status)}`}>
-                            {mission.status}
-                          </span>
-                        </div>
-                        
-                        {mission.status === "Available" && (
-                          <Button className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-1 rounded-lg text-xs sm:text-sm">
-                            Start
-                          </Button>
-                        )}
-                        {mission.status === "In Progress" && (
-                          <div className="flex gap-2">
-                            <Button className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-1 rounded-lg text-xs sm:text-sm">
-                              Continue
-                            </Button>
-                            <Button 
-                              onClick={() => handleSubmitMission(mission)}
-                              disabled={!areAllStepsCompleted(mission)}
-                              className={`px-3 sm:px-4 py-1 rounded-lg text-xs sm:text-sm transition-all ${
-                                areAllStepsCompleted(mission)
-                                  ? 'bg-[#30bdee] hover:bg-[#2aa3d1] text-white'
-                                  : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                              }`}
-                            >
-                              Submit
-                            </Button>
+                                </div>
+
+                              </div>
+                            </div>
                           </div>
-                        )}
-                      </div>
+
+                          {/* Desktop Grid Layout */}
+                          <div className="hidden lg:contents">
+                            <div className="text-white text-sm truncate pr-2" title={mission.title}>
+                              {mission.title}
+                            </div>
+                            <div className="text-yellow-400 text-sm font-bold truncate">
+                              {mission.xpRewards}
+                            </div>
+                            <div className="flex items-center gap-1 min-w-0">
+                              <div className="w-3 h-3 bg-[#30bdee] rounded-full flex-shrink-0" />
+                              <span className="text-white text-sm truncate">{mission.coinsRewards}</span>
+                            </div>
+                            <div>
+                              <span
+                                className={`px-2 py-1 rounded text-xs font-medium inline-block ${mission.isActive
+                                  ? "bg-green-600 text-white"
+                                  : "bg-gray-600 text-white"
+                                  }`}
+                              >
+                                {mission.isActive ? "Active" : "Inactive"}
+                              </span>
+                            </div>
+                            <div className="flex gap-1">
+                              {mission?.UserQuest?.length === 0 ? (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="w-28 bg-blue-600 text-white text-sm font-medium rounded text-center justify-center"
+                                  onClick={() => handleStartMission(mission.id)}
+                                >
+                                  <span className="truncate block w-full">Start </span>
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="w-28 bg-green-600 text-white text-sm font-medium rounded text-center justify-center"
+                                  onClick={() => setShowSubmitMissionModal(!showSubmitMissionModal)}
+                                >
+                                  <span className="truncate block w-full">Submit</span>
+                                </Button>
+                              )}
+                            </div>
+
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
+              </div>
+            </CardContent>
+          </Card>
+        </div>
         {/* Right Column - XP History and Upcoming */}
-        <div className="space-y-6 lg:space-y-8">
+        <div className="flex-1 xl:w-80 space-y-6 lg:space-y-8">
           {/* XP History */}
           <Card className="bg-[#111111] border-[#333333] overflow-hidden">
             <CardHeader className="pb-3 sm:pb-4">
@@ -1276,5 +1710,6 @@ export const Missions = (): JSX.Element => {
         </div>
       </div>
     </div>
+
   );
 };

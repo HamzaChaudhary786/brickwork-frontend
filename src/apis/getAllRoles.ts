@@ -4,7 +4,7 @@ import { Role } from "../screens/AdminDashboard";
 
 export async function getAllRoles(): Promise<Role[]> {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/rbac/roles`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/rbac/roles/1/999`, {
       method: 'GET',
       headers: {
         "Content-Type": "application/json",

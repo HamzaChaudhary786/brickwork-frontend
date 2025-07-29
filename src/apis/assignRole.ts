@@ -1,21 +1,19 @@
-import { ApiResponse, RoleData } from "./addRoles";
+import { ApiResponse } from "./addRoles";
 
-export const assignRole = async (
-  id: string,
-  roleData: RoleData
+export const assignRoles = async (
+  userId: string,
+  roleIds: string[]
 ): Promise<ApiResponse<any>> => {
   try {
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/rbac/roles/{id}`,
-      {
-        method: 'PUT', // or 'PUT' if you're updating
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(roleData),
-      }
-    );
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/users/${userId}/roles`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Authorization: `Bearer ${your_token}` // Optional: auth token
+      },
+      credentials: 'include',
+      body: JSON.stringify(roleIds),
+    });
 
     const contentType = response.headers.get('Content-Type');
 
@@ -44,8 +42,7 @@ export const assignRole = async (
     return {
       success: false,
       statusCode: 500,
-      message:
-        error?.message || 'Something went wrong while assigning the role.',
+      message: error?.message || 'Something went wrong while assigning roles.',
       result: null,
     };
   }
