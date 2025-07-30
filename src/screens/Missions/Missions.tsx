@@ -1771,7 +1771,7 @@ export const Missions = (): JSX.Element => {
                                         size="sm"
                                         variant="ghost"
                                         className="w-28 bg-green-600 text-white text-sm font-medium rounded text-center justify-center"
-                                        onClick={() => { handleCompleteQuest(mission?.QuestSteps[0]?.id) }}
+                                        onClick={() => { handleCompleteQuest(mission?.QuestSteps[0]?.questId) }}
                                       >
                                         <span className="truncate block w-full">Complete</span>
                                       </Button>
@@ -1837,8 +1837,7 @@ export const Missions = (): JSX.Element => {
                                       size="sm"
                                       variant="ghost"
                                       className="w-28 bg-green-600 text-white text-sm font-medium rounded text-center justify-center"
-                                      onClick={() => { handleCompleteQuest(mission?.QuestSteps[0]?.id) }}
-                                    >
+                                      onClick={() => { handleCompleteQuest(mission?.QuestSteps[0]?.questId) }}                                    >
                                       <span className="truncate block w-full">Complete</span>
                                     </Button>
                                   ) : (
