@@ -1108,10 +1108,10 @@ export const Groups = (): JSX.Element => {
                   {/* Desktop Table */}
                   <div className="hidden lg:block">
                     <div className="min-w-[780px]">
-                      <div className="grid grid-cols-5 gap-4 p-3 bg-[#ffffff06] rounded-lg mb-4 text-[#ffffffb2] text-sm font-medium">
+                      <div className="grid grid-cols-4 gap-4 p-3 bg-[#ffffff06] rounded-lg mb-4 text-[#ffffffb2] text-sm font-medium">
                         <div className="min-w-[160px]">User</div>
                         <div className="min-w-[200px]">Roles</div>
-                        <div className="min-w-[200px]">Permissions</div>
+                        {/* <div className="min-w-[200px]">Permissions</div> */}
                         <div className="min-w-[100px]">Status</div>
                         <div className="min-w-[120px]">Actions</div>
                       </div>
@@ -1120,7 +1120,7 @@ export const Groups = (): JSX.Element => {
                         {users.map((user: User) => (
                           <div
                             key={user.id}
-                            className="grid grid-cols-5 gap-4 p-3 bg-[#ffffff03] rounded-lg hover:bg-[#ffffff06] transition-colors items-center"
+                            className="grid grid-cols-4 gap-4 p-3 bg-[#ffffff03] rounded-lg hover:bg-[#ffffff06] transition-colors items-center"
                           >
                             {/* User */}
                             <div className="flex items-center gap-3 min-w-[160px]">
@@ -1142,14 +1142,14 @@ export const Groups = (): JSX.Element => {
                             </div>
 
                             {/* Permissions */}
-                            <div className="text-[#ffffffb2] text-sm min-w-[200px] truncate">
+                            {/* <div className="text-[#ffffffb2] text-sm min-w-[200px] truncate">
                               {Array.isArray(user.permissions) && user.permissions.length > 0
                                 ? user.permissions
                                   .map((permission: Permission) => permission?.name ?? '')
                                   .filter(name => name) // remove empty strings
                                   .join(', ')
                                 : 'No permissions'}
-                            </div>
+                            </div> */}
 
 
                             {/* Status */}
@@ -1217,12 +1217,12 @@ export const Groups = (): JSX.Element => {
                                 ? user.roles.map((role: Role) => role.name).join(', ')
                                 : 'None'}
                             </div>
-                            <div className="text-[#ffffffb2] text-sm">
+                            {/* <div className="text-[#ffffffb2] text-sm">
                               <span className="font-medium">Permissions: </span>
                               {Array.isArray(user.permissions)
                                 ? user.permissions.map((permission: Permission) => permission.name).join(', ')
                                 : 'None'}
-                            </div>
+                            </div> */}
                           </div>
 
                           <div className="flex gap-2 pt-2">

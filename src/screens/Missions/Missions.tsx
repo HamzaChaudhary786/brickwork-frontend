@@ -16,6 +16,8 @@ import { fetchAllQuests, Quest } from "../../apis/getAllQuest";
 import { startMission } from "../../apis/startMission";
 import { fetchAllUsers } from "../../apis/getAllUsers";
 import { User } from "../Dashboard";
+import { completeQuestStep } from "../../apis/submitMissionSteps";
+import { completeQuest } from "../../apis/submitCompleteMission";
 
 
 
@@ -194,8 +196,97 @@ export const Missions = (): JSX.Element => {
       }
     ]
   });
+  const [myMissionData, setMyMissionData] = useState<any>()
 
 
+  const [selectedQuestStepId, setSelectedQuestStepId] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [note, setNote] = useState("");
+
+  // Add these handler functions
+
+  const handleFileUpload = (event: any) => {
+    const file = event.target.files[0];
+    if (file) {
+      console.log("File selected:", file);
+      setSelectedFile(file);
+    }
+  };
+
+  const handleUploadClick = () => {
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
+    }
+  };
+  const handleCompleteStep = async () => {
+    if (!selectedQuestStepId || !selectedFile) {
+      alert("Please select a quest step and upload a file");
+      return;
+    }
+
+    const questStepData = {
+      questStepId: selectedQuestStepId,
+      proof: selectedFile, // File object in binary form
+    };
+
+    try {
+      const result = await completeQuestStep(questStepData);
+      console.log("Mission submitted successfully:", result);
+    } catch (error) {
+      console.error("Error submitting mission:", error);
+    }
+  };
+
+  const filteredMissions = quests.filter(mission => {
+    const userQuest = mission.UserQuest?.[0];
+    const userQuestSteps = userQuest?.UserQuestSteps || [];
+    const totalSteps = mission.QuestSteps?.length || 0;
+
+    if (activeTab === "all") return true;
+
+    if (activeTab === "pending") {
+      // ✅ Show missions that are started but not fully completed
+      return (
+        mission.UserQuest.length > 0 &&
+        userQuestSteps.length > 0 &&
+        (
+          userQuestSteps.length < totalSteps || // not all steps attempted
+          userQuestSteps.some(step => !step.isCompleted) // some steps incomplete
+        )
+      );
+    }
+
+    if (activeTab === "completed") {
+      // ✅ Show only missions where all quest steps are completed
+      return (
+        mission.UserQuest.length > 0 &&
+        userQuestSteps.length === totalSteps &&
+        totalSteps > 0 &&
+        userQuestSteps.every(step => step.isCompleted)
+      );
+    }
+
+    return true;
+  });
+
+
+
+
+  const handleCompleteQuest = async (id: any) => {
+    const result = await completeQuest({ questId: id });
+
+    if (result.success) {
+      alert("Quest completed successfully:");
+    } else {
+      console.error("Quest completion failed:", result.message);
+    }
+  };
+
+  useEffect(() => {
+    console.log(myMissionData, "my mission data");
+
+  }, [myMissionData])
 
   const handleParticipantsChange = (selectedIds: string[]) => {
     console.log('Participants selected:', selectedIds);
@@ -334,17 +425,21 @@ export const Missions = (): JSX.Element => {
         body: JSON.stringify(missionData),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        throw new Error(data.message || `HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      // ✅ Now safely fetch all quests after success
+
+      return data;
     } catch (error) {
       console.error('API Error:', error);
       throw error;
     }
   };
+
 
   // Event handlers
   const handleCreateMission = async (): Promise<void> => {
@@ -363,12 +458,15 @@ export const Missions = (): JSX.Element => {
 
       const apiData: FormattedAPIData = {
         ...formatMissionDataForAPI(missionData),
-        participants : missionData.participants.join(',')  // 👈 Converts to "id1,id2,id3"
+        participants: missionData.participants.join(',')  // 👈 Converts to "id1,id2,id3"
       };
       const response: APIResponse = await createMissionAPI(apiData);
 
       setSuccess(true);
       console.log('Mission created successfully:', response);
+
+      const responseData = await fetchAllQuests();
+      setQuests(responseData.result);
 
       // Optional: Reset form or close modal after success
       // setTimeout(() => {
@@ -497,12 +595,7 @@ export const Missions = (): JSX.Element => {
     return mission.steps && mission.steps.every((step: any) => step.completed);
   };
 
-  const filteredMissions = missions.filter(mission => {
-    if (activeTab === "all") return true;
-    if (activeTab === "completed") return mission.status === "Completed";
-    if (activeTab === "in-progress") return mission.status === "In Progress";
-    return true;
-  });
+
 
   const handleNewMission = () => {
     setShowNewMissionModal(true);
@@ -713,6 +806,13 @@ export const Missions = (): JSX.Element => {
 
 
 
+
+
+
+
+
+
+
   // If Submit Mission modal is open, show it instead of the main content
   if (showSubmitMissionModal) {
     return (
@@ -734,23 +834,21 @@ export const Missions = (): JSX.Element => {
         <div className="max-w-4xl mx-auto space-y-6 lg:space-y-8">
           {/* Selected Mission Info */}
           <div className="bg-[#111111] border border-[#30bdee] rounded-2xl p-4 sm:p-6">
-            {/* <div className="flex items-center gap-3 mb-4">
-              <div className={`w-12 h-12 bg-gradient-to-br ${selectedMission.color} rounded-xl flex items-center justify-center`}>
-                <span className="text-white text-xl">{selectedMission.icon}</span>
-              </div>
+            <div className="flex items-center gap-3 mb-4">
               <div>
-                <h2 className="text-white text-lg sm:text-xl font-bold">{selectedMission.title}</h2>
-                <div className="flex items-center gap-4 mt-1">
-                  <span className="text-yellow-400 font-bold">{selectedMission.xp}</span>
-                  {selectedMission.coins > 0 && (
+                <h2 className="text-white text-lg sm:text-xl font-bold">{myMissionData?.title}</h2>
+                <p className="text-[#ffffffb2] text-sm mt-1">{myMissionData?.description}</p>
+                <div className="flex items-center gap-4 mt-2">
+                  <span className="text-yellow-400 font-bold">{myMissionData?.xpRewards} XP</span>
+                  {myMissionData?.coinsRewards > 0 && (
                     <div className="flex items-center gap-1">
                       <div className="w-4 h-4 bg-[#30bdee] rounded-full" />
-                      <span className="text-white font-medium">{selectedMission.coins}</span>
+                      <span className="text-white font-medium">{myMissionData?.coinsRewards} Coins</span>
                     </div>
                   )}
                 </div>
               </div>
-            </div> */}
+            </div>
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 bg-green-600 text-white text-sm font-medium rounded-full">
                 Status
@@ -761,8 +859,49 @@ export const Missions = (): JSX.Element => {
             </div>
           </div>
 
-          {/* Available Missions Grid */}
+          {/* Quest Steps Selection */}
+          <div className="bg-[#1a1a1a] border border-[#333333] rounded-2xl p-4 sm:p-6">
+            <h3 className="text-white text-lg font-bold mb-4">Select Quest Step</h3>
+            <select
+              value={selectedQuestStepId}
+              onChange={(e) => setSelectedQuestStepId(e.target.value)}
+              className="w-full bg-[#0a0a0a] border border-[#333333] rounded-lg text-white focus:border-[#30bdee] focus:bg-[#111111] transition-all text-sm p-3"
+            >
+              <option value="">Select a quest step...</option>
+              {myMissionData?.UserQuest[0]?.UserQuestSteps?.map((step: any) => {
 
+                const questStep = myMissionData.QuestSteps.find((item: any) => item.id == step.questStepId);
+
+                return (
+                  < option key={step.id} value={step.id} >
+                    {questStep.title} - {questStep.xpReward} XP, {questStep.coinsReward} Coins
+                  </option>
+                )
+              })}
+            </select>
+
+            {/* Show selected step details */}
+            {selectedQuestStepId && (
+              <div className="mt-4 p-3 bg-[#0a0a0a] border border-[#333333] rounded-lg">
+                {(() => {
+                  const selectedStep = myMissionData?.QuestSteps?.find((step: any) => step.id === selectedQuestStepId);
+                  return selectedStep ? (
+                    <div>
+                      <h4 className="text-white font-medium mb-2">{selectedStep.title}</h4>
+                      <p className="text-[#ffffffb2] text-sm mb-2">{selectedStep.description}</p>
+                      <div className="flex items-center gap-3">
+                        <span className="text-yellow-400 text-sm font-bold">{selectedStep.xpReward} XP</span>
+                        <span className="text-[#30bdee] text-sm font-bold">{selectedStep.coinsReward} Coins</span>
+                        <span className="px-2 py-1 bg-purple-600 text-white text-xs rounded">
+                          {selectedStep.rewardType}
+                        </span>
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+            )}
+          </div>
 
           {/* Upload Section */}
           <div className="bg-[#1a1a1a] border border-[#333333] rounded-2xl p-4 sm:p-6">
@@ -772,16 +911,37 @@ export const Missions = (): JSX.Element => {
               </div>
               <h3 className="text-white text-lg font-bold mb-2">Upload a Screenshot or drag and drop a file</h3>
               <p className="text-[#ffffffb2] text-sm mb-6">PNG and JPG files are allowed</p>
-              <Button className="bg-[#30bdee] hover:bg-[#2aa3d1] text-white px-6 py-2 rounded-lg">
+
+              {selectedFile && (
+                <div className="mb-4 p-3 bg-[#0a0a0a] border border-[#30bdee] rounded-lg">
+                  <p className="text-white text-sm">Selected file: {selectedFile.name}</p>
+                  <p className="text-[#ffffffb2] text-xs">Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                </div>
+              )}
+
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/jpg"
+                onChange={handleFileUpload}
+                className="hidden"
+                id="file-upload"
+              />
+
+              <button
+                type="button"
+                onClick={handleUploadClick}
+                className="bg-[#30bdee] hover:bg-[#2aa3d1] text-white px-6 py-2 rounded-lg cursor-pointer transition-colors"
+              >
                 Upload
-              </Button>
+              </button>
             </div>
           </div>
-
           {/* Add Note Section */}
           <div className="bg-[#1a1a1a] border border-[#333333] rounded-2xl p-4 sm:p-6">
             <h3 className="text-white text-lg font-bold mb-4">Add Note</h3>
             <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
               className="w-full h-24 bg-[#0a0a0a] border border-[#333333] rounded-lg text-white placeholder:text-[#ffffffb2] focus:border-[#30bdee] focus:bg-[#111111] transition-all text-sm p-3 resize-none"
               placeholder="Tell us how you completed this mission..."
             />
@@ -796,14 +956,14 @@ export const Missions = (): JSX.Element => {
               Back To Missions
             </Button>
             <Button
-              onClick={handleFinalSubmit}
+              onClick={handleCompleteStep}
               className="bg-[#30bdee] hover:bg-[#2aa3d1] text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg font-semibold order-1 sm:order-2"
             >
               Submit Mission
             </Button>
           </div>
         </div>
-      </div>
+      </div >
     );
   }
 
@@ -1373,6 +1533,9 @@ export const Missions = (): JSX.Element => {
 
 
 
+
+
+
   // Main Missions Screen
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8 bg-[#0a0a0a] min-h-screen overflow-y-auto">
@@ -1496,7 +1659,39 @@ export const Missions = (): JSX.Element => {
                   </Button>
                 </div>
               </div>
+
+
+              <div className="flex gap-4 sm:gap-6 border-b border-[#333333] overflow-x-auto">
+                <button
+                  onClick={() => setActiveTab("all")}
+                  className={`pb-2 sm:pb-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === "all"
+                    ? "text-[#30bdee] border-b-2 border-[#30bdee]"
+                    : "text-[#ffffffb2] hover:text-white"
+                    }`}
+                >
+                  All Missions
+                </button>
+                <button
+                  onClick={() => setActiveTab("pending")}
+                  className={`pb-2 sm:pb-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === "pending"
+                    ? "text-[#30bdee] border-b-2 border-[#30bdee]"
+                    : "text-[#ffffffb2] hover:text-white"
+                    }`}
+                >
+                  Pending
+                </button>
+                <button
+                  onClick={() => setActiveTab("completed")}
+                  className={`pb-2 sm:pb-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === "completed"
+                    ? "text-[#30bdee] border-b-2 border-[#30bdee]"
+                    : "text-[#ffffffb2] hover:text-white"
+                    }`}
+                >
+                  Completed
+                </button>
+              </div>
             </CardHeader>
+
             <CardContent className="px-3 sm:px-6">
               <div className="space-y-6 lg:space-y-8">
                 {/* Group Mission Snapshot */}
@@ -1526,7 +1721,7 @@ export const Missions = (): JSX.Element => {
                   {/* Missions List with Scroll */}
                   <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-track-[#111111] scrollbar-thumb-[#333333] hover:scrollbar-thumb-[#30bdee] pr-2">
                     <div className="space-y-2">
-                      {quests.map((mission: any) => (
+                      {filteredMissions.map((mission: any) => (
                         <div
                           key={mission.id}
                           className="lg:grid lg:grid-cols-5 lg:gap-2 p-3 bg-[#ffffff03] rounded-lg hover:bg-[#ffffff06] transition-colors lg:items-center"
@@ -1560,6 +1755,7 @@ export const Missions = (): JSX.Element => {
                                 <div className="flex gap-1 flex-shrink-0">
                                   <div className="flex gap-1">
                                     {mission?.UserQuest?.length === 0 ? (
+                                      // ✅ Show START if user has not started the mission
                                       <Button
                                         size="sm"
                                         variant="ghost"
@@ -1568,21 +1764,33 @@ export const Missions = (): JSX.Element => {
                                       >
                                         <span className="truncate block w-full">Start</span>
                                       </Button>
-                                    ) : (
+                                    ) : mission?.UserQuest[0]?.UserQuestSteps?.length === mission?.QuestSteps?.length &&
+                                      mission.UserQuest[0].UserQuestSteps.every((step: any) => step.isCompleted) ? (
+                                      // ✅ Show COMPLETE if all steps are completed
                                       <Button
                                         size="sm"
                                         variant="ghost"
                                         className="w-28 bg-green-600 text-white text-sm font-medium rounded text-center justify-center"
-                                        onClick={() => setShowSubmitMissionModal(!showSubmitMissionModal)}
+                                        onClick={() => { handleCompleteQuest(mission?.QuestSteps[0]?.id) }}
                                       >
-                                        <span className="truncate block w-full">Submit</span>
+                                        <span className="truncate block w-full">Complete</span>
+                                      </Button>
+                                    ) : (
+                                      // ✅ Show CONTINUE in all other cases
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="w-28 bg-orange-600 text-white text-sm font-medium rounded text-center justify-center"
+                                        onClick={() => {
+                                          setShowSubmitMissionModal(!showSubmitMissionModal);
+                                          setMyMissionData(mission);
+                                        }}
+                                      >
+                                        <span className="truncate block w-full">Continue</span>
                                       </Button>
                                     )}
                                   </div>
-
-
                                 </div>
-
                               </div>
                             </div>
                           </div>
@@ -1609,26 +1817,46 @@ export const Missions = (): JSX.Element => {
                                 {mission.isActive ? "Active" : "Inactive"}
                               </span>
                             </div>
-                            <div className="flex gap-1">
-                              {mission?.UserQuest?.length === 0 ? (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="w-28 bg-blue-600 text-white text-sm font-medium rounded text-center justify-center"
-                                  onClick={() => handleStartMission(mission.id)}
-                                >
-                                  <span className="truncate block w-full">Start </span>
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="w-28 bg-green-600 text-white text-sm font-medium rounded text-center justify-center"
-                                  onClick={() => setShowSubmitMissionModal(!showSubmitMissionModal)}
-                                >
-                                  <span className="truncate block w-full">Submit</span>
-                                </Button>
-                              )}
+                            <div className="flex gap-1 flex-shrink-0">
+                              <div className="flex gap-1 flex-shrink-0">
+                                <div className="flex gap-1">
+                                  {mission?.UserQuest?.length === 0 ? (
+                                    // ✅ Show START if user has not started the mission
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="w-28 bg-blue-600 text-white text-sm font-medium rounded text-center justify-center"
+                                      onClick={() => handleStartMission(mission.id)}
+                                    >
+                                      <span className="truncate block w-full">Start</span>
+                                    </Button>
+                                  ) : mission?.UserQuest[0]?.UserQuestSteps?.length === mission?.QuestSteps?.length &&
+                                    mission.UserQuest[0].UserQuestSteps.every((step: any) => step.isCompleted) ? (
+                                    // ✅ Show COMPLETE if all steps are completed
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="w-28 bg-green-600 text-white text-sm font-medium rounded text-center justify-center"
+                                      onClick={() => { handleCompleteQuest(mission?.QuestSteps[0]?.id) }}
+                                    >
+                                      <span className="truncate block w-full">Complete</span>
+                                    </Button>
+                                  ) : (
+                                    // ✅ Show CONTINUE in all other cases
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="w-28 bg-orange-600 text-white text-sm font-medium rounded text-center justify-center"
+                                      onClick={() => {
+                                        setShowSubmitMissionModal(!showSubmitMissionModal);
+                                        setMyMissionData(mission);
+                                      }}
+                                    >
+                                      <span className="truncate block w-full">Continue</span>
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
                             </div>
 
                           </div>
